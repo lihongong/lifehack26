@@ -91,11 +91,11 @@ button, a { font: inherit; }
 .welcome-actions { display: flex; gap: 8px; align-items: center; margin-left: 10px; }
 .scan-icon, .ecard { height: 33px; border-radius: 19px; }
 .scan-icon { width: 62px; background: white; position: relative; }
-.scan-icon::before, .scan-icon::after, .scan-icon span::before, .scan-icon span::after { content: ""; position: absolute; width: 8px; height: 8px; border-color: #e89684; }
-.scan-icon::before { left: 20px; top: 7px; border-left: 1.5px solid; border-top: 1.5px solid; }
-.scan-icon::after { right: 20px; top: 7px; border-right: 1.5px solid; border-top: 1.5px solid; }
-.scan-icon span::before { left: 20px; bottom: 7px; border-left: 1.5px solid; border-bottom: 1.5px solid; }
-.scan-icon span::after { right: 20px; bottom: 7px; border-right: 1.5px solid; border-bottom: 1.5px solid; }
+.scan-icon::before, .scan-icon::after, .scan-icon span::before, .scan-icon span::after { content: ""; position: absolute; width: 8px; height: 8px; border-color: #ed4d33; }
+.scan-icon::before { left: 20px; top: 7px; border-left: 1.5px solid #d83b20; border-top: 1.5px solid #d83b20; }
+.scan-icon::after { right: 20px; top: 7px; border-right: 1.5px solid #d83b20; border-top: 1.5px solid #d83b20; }
+.scan-icon span::before { left: 20px; bottom: 7px; border-left: 1.5px solid #d83b20; border-bottom: 1.5px solid #d83b20; }
+.scan-icon span::after { right: 20px; bottom: 7px; border-right: 1.5px solid #d83b20; border-bottom: 1.5px solid #d83b20; }
 .ecard { padding: 6px 13px; background: #7186b8; font-size: 17px; color: #f2f4fb; }
 
 .explore { padding: 23px 18px 26px; background: #0c0c0c; }
