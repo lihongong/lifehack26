@@ -49,4 +49,31 @@ Key privileged endpoints:
 - `GET /api/moderation/marketplace`
 - `PATCH /api/moderation/marketplace/:listingId`
 
+## Public Comments and Content Reports
+
+Every Marketplace Listing exposes a public one-level Comment thread.
+Creating or editing a Comment requires an authenticated Participant with a completed public profile and current acceptance of the policies required for Comments.
+Authors can delete their Comments without renewed policy acceptance, and a removed-parent placeholder preserves replies.
+Obvious email addresses and phone numbers require explicit confirmation before a Comment is published.
+
+Authenticated Participants can submit a Content Report for a Marketplace Listing or Comment using fraud, safety, privacy, or staleness as the reason category.
+The submission transaction captures sanitized evidence for Moderator review and never awards Gems.
+Report evidence remains subject to operational retention and anonymization procedures, while the Moderator resolution reason and audit event are immutable.
+Moderators can hide reported content, resolve content that is already unavailable, dismiss a report, or directly hide and restore a Comment with a required reason.
+
+Replies and moderation outcomes create private in-app notifications on the Participant profile.
+Public Comment payloads expose only the author's public ID and display name.
+
+Key discussion and reporting endpoints:
+
+- `GET /api/listings/:listingId/comments`
+- `POST /api/listings/:listingId/comments`
+- `PATCH /api/comments/:commentId`
+- `DELETE /api/comments/:commentId`
+- `POST /api/content-reports`
+- `GET /api/me/notifications`
+- `GET /api/moderation/reports`
+- `PATCH /api/moderation/reports/:reportId`
+- `PATCH /api/moderation/comments/:commentId`
+
 Run verification with `npm test`, `npm run build`, and `npm run test:e2e`. The end-to-end command builds the current frontend before starting Playwright.

@@ -7,7 +7,7 @@ The NUS Community Exchange aggregates time-sensitive community posts and rewards
 The tracer-bullet application currently uses a React and Vite frontend served by a Node and Express backend with SQLite persistence.
 This implementation keeps the current app working while ADR 0004 records the intended production move to Next.js, Vercel, and Supabase.
 `backend/src/app.js` is a side-effect-free application factory so tests can inject an in-memory database, clock, identity adapter, and Platform Operator subject.
-The backend runs every idempotent SQL migration at startup and keeps Participant, session, policy, Gem, privileged-role, moderation, and audit state in SQLite.
+The backend runs every idempotent SQL migration at startup and keeps Participant, session, policy, Gem, Comment, Content Report, notification, privileged-role, moderation, and audit state in SQLite.
 The frontend obtains the private authenticated Participant from `GET /api/auth/session` and uses the returned role to expose only the relevant privileged navigation.
 
 ## Authentication and privileged roles
@@ -30,11 +30,31 @@ Self-directed Marketplace actions are inferred on the server from an internal So
 SQLite triggers reject updates and deletions from the audit log.
 Only the Platform Operator can read the complete audit trail through `/api/operator/audit` and `/operator`.
 
+## Public Comments, Content Reports, and notifications
+
+Every Marketplace Listing exposes a publicly readable one-level Comment thread through `/api/listings/:listingId/comments` and the Marketplace Listing card.
+Comment creation and editing require an authenticated Participant with a completed public profile and current policy acceptance for Comments.
+Author deletion requires authentication and ownership but deliberately does not require renewed policy acceptance.
+An author-deleted parent remains as a body-cleared placeholder while replies or unresolved Content Reports require continuity.
+SQLite triggers independently reject reply-to-reply persistence, while public Comment read models expose only public Participant IDs and display names.
+Obvious email addresses and phone numbers return a contact-detail confirmation response before publication, and the frontend requires an explicit public-sharing confirmation.
+
+Authenticated Participants can submit Content Reports for Marketplace Listings and Comments using fraud, safety, privacy, or staleness categories.
+Report submission atomically captures sanitized evidence without creating a Gem Ledger entry.
+Report evidence and reporter identity remain retention-governed operational data rather than immutable data.
+Report resolutions record an immutable terminal outcome and required Moderator reason without copying the reported evidence into the immutable record.
+Each report can independently terminate as hidden, already unavailable, or dismissed, even when another report or direct moderation already changed the target.
+
+Marketplace Listing and Comment visibility mutations are transaction-neutral so direct moderation and report resolution can compose them inside one transaction with audit and notification writes.
+Moderators can directly hide or restore Comments through `/api/moderation/comments/:commentId` and can resolve the queue exposed by `/api/moderation/reports`.
+Replies, direct Comment moderation, and report outcomes create private in-app notifications available through `/api/me/notifications` and the Participant profile.
+
 ## Development and verification
 
 Non-production uNivUS launches support fixed `operator`, `moderator`, and `participant` demo identities through the `x-demo-identity` request header.
 Production rejects the mock adapter and never accepts demo identity selection.
-Playwright starts the app with an in-memory database and the mock Operator's stable subject configured for repeatable role and session-revocation tests.
+Playwright starts the app with an in-memory database and the mock Operator's stable subject configured for repeatable role, session-revocation, Comment, and Content Report tests.
+The mobile project uses Playwright's Pixel 7 Chromium profile because the frozen WebKit runtime available on macOS 14 arm64 crashes before application startup.
 Run `npm test`, `npm run build`, and `npm run test:e2e` from this directory before merging a change.
 
 ## Issue workflow
