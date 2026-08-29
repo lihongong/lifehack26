@@ -24,7 +24,10 @@ export const moderateComment = (commentId, reason) => request(`/api/moderation/c
   body: JSON.stringify({ hidden: true, reason }),
 });
 export const getSourceDiscrepancies = (status = "open") => request(`/api/moderation/source-discrepancies?status=${encodeURIComponent(status)}`);
-export const resolveSourceDiscrepancy = (id, decision, reason) => request(`/api/moderation/source-discrepancies/${encodeURIComponent(id)}/resolution`, { method: "POST", body: JSON.stringify({ decision, reason }) });
+export const resolveSourceDiscrepancy = (id, decision, reason, correctedListing) => request(`/api/moderation/source-discrepancies/${encodeURIComponent(id)}/resolution`, {
+  method: "POST",
+  body: JSON.stringify({ decision, reason, ...(correctedListing ? { correctedListing } : {}) }),
+});
 export const getSourceAuthorConsents = (feedId) => request(`/api/moderation/source-feeds/${encodeURIComponent(feedId)}/author-consents`);
 export const recordSourceAuthorConsent = (feedId, consent) => request(`/api/moderation/source-feeds/${encodeURIComponent(feedId)}/author-consents`, { method: "POST", body: JSON.stringify(consent) });
 export const withdrawSourceAuthorConsent = (feedId, consentId, reason) => request(`/api/moderation/source-feeds/${encodeURIComponent(feedId)}/author-consents/${encodeURIComponent(consentId)}`, { method: "DELETE", body: JSON.stringify({ reason }) });

@@ -10,8 +10,8 @@ function error(message, status) {
   return Object.assign(new Error(message), { status });
 }
 
-function requireVisibleListing(database, listingId) {
-  const listing = findListings(database, {}, hiddenListingIds(database))
+function requireVisibleListing(database, listingId, now) {
+  const listing = findListings(database, {}, hiddenListingIds(database), { now })
     .find(({ id }) => id === listingId);
   if (!listing) {
     throw error("Marketplace Listing not found.", 404);
@@ -72,8 +72,8 @@ function findCommentRow(database, commentId) {
   `).get(commentId);
 }
 
-export function listMarketplaceComments(database, listingId) {
-  requireVisibleListing(database, listingId);
+export function listMarketplaceComments(database, listingId, now) {
+  requireVisibleListing(database, listingId, now);
   const comments = database.prepare(`
     SELECT c.*, p.public_id, p.display_name, COALESCE(cm.hidden, 0) AS hidden
     FROM comments c
@@ -91,7 +91,7 @@ export function listMarketplaceComments(database, listingId) {
 }
 
 export function createMarketplaceComment(database, participant, listingId, input, now) {
-  requireVisibleListing(database, listingId);
+  requireVisibleListing(database, listingId, now);
   if (!participant.display_name) throw error("Complete your public profile before commenting.", 422);
   const body = validateBody(input?.body);
   validateContactConfirmation(body, input?.confirmContactDetails);
@@ -139,7 +139,7 @@ export function editComment(database, participant, commentId, input, now) {
   if (comment.author_participant_id !== participant.participant_id) {
     throw error("Only the Comment author can edit it.", 403);
   }
-  requireVisibleListing(database, comment.post_id);
+  requireVisibleListing(database, comment.post_id, now);
   const body = validateBody(input?.body);
   validateContactConfirmation(body, input?.confirmContactDetails);
   const timestamp = now.toISOString();

@@ -14,9 +14,9 @@ import {
 export function moderationRoutes({ database, clock, sourceIdentitySecret }) {
   const router = Router();
   router.use(requireParticipant, requireRole("moderator"));
-  router.get("/marketplace", (_request, response) => response.json({ listings: moderatorListings(database) }));
+  router.get("/marketplace", (_request, response) => response.json({ listings: moderatorListings(database, clock.now()) }));
   router.get("/reports", (_request, response) => response.json({ reports: listOpenContentReports(database) }));
-  router.get("/comments", (_request, response) => response.json({ comments: moderatorComments(database) }));
+  router.get("/comments", (_request, response) => response.json({ comments: moderatorComments(database, clock.now()) }));
   router.patch("/reports/:reportId", (request, response) => {
     const resolution = resolveContentReport(
       database,
@@ -54,6 +54,7 @@ export function moderationRoutes({ database, clock, sourceIdentitySecret }) {
       request.body?.decision,
       request.body?.reason,
       clock.now(),
+      request.body?.correctedListing,
     );
     response.json({ discrepancy });
   });

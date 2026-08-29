@@ -30,26 +30,33 @@ function actor(database, suffix = "one") {
   ).participant;
 }
 
-function update({ updateId, messageId, authorId = "source-author", date = 1787997600, editDate, listingId = `listing-${messageId}`, title = "Fixture item", event = "message" }) {
+function update({
+  updateId,
+  messageId,
+  authorId = "source-author",
+  date = 1787997600,
+  editDate,
+  title = "Fixture item",
+  category = "Study",
+  price = 10,
+  description = "Normalized fixture description.",
+  text,
+  event = "message",
+}) {
   const message = {
     message_id: messageId,
     date,
-    from: { id: authorId },
+    chat: { username: "nus_marketplace_demo" },
+    from: { id: authorId, first_name: "Private Fixture Seller", username: "private_fixture_seller" },
   };
-  if (event !== "deleted_message") message.marketplace_listing = {
-    id: listingId,
-    title,
-    category: "Study",
-    price: 10,
-    description: "Normalized fixture description.",
-    source_name: "NUS Marketplace",
-    source_url: `https://example.com/${listingId}`,
-    image_url: "/images/listings/calculator.svg",
-    image_alt: "Fictional fixture item",
-    fictional: true,
-  };
+  if (event !== "deleted_message") {
+    message.text = text || `Title: ${title}\nCategory: ${category}\nPrice: S$${price}\nDescription: ${description}\nContact: @private_fixture_seller`;
+  }
   if (editDate != null) message.edit_date = editDate;
-  return normalizeTelegramUpdate({ update_id: updateId, [event]: message });
+  return normalizeTelegramUpdate(
+    { update_id: updateId, [event]: message },
+    { feedId, fictional: true, media: { imageUrl: "/images/listings/calculator.svg", imageAlt: "Fictional fixture item" } },
+  );
 }
 
 test("the allowlisted Telegram fixture replays deterministically and idempotently", () => {
@@ -73,18 +80,19 @@ test("live adapter creation is gated by permission, privacy review, and explicit
   assert.equal(factoryCalls, 0);
 
   updateSourceFeedGates(database, moderator.id, feedId, {
-    permissionApproved: true,
-    permissionEvidenceReference: "permission-001",
-  }, "Written chat administrator permission received", baseTime);
-  await assert.rejects(() => startLiveSourceFeed(database, feedId, factory), /disabled/);
-  assert.equal(factoryCalls, 0);
-  assert.throws(() => updateSourceFeedGates(database, moderator.id, feedId, { liveEnabled: true }, "Attempt live enable", baseTime), /privacy review/);
-
-  updateSourceFeedGates(database, moderator.id, feedId, {
     privacyApproved: true,
     privacyEvidenceReference: "privacy-001",
+  }, "Privacy review approved before written permission", baseTime);
+  await assert.rejects(() => startLiveSourceFeed(database, feedId, factory), /disabled/);
+  assert.equal(factoryCalls, 0);
+  assert.throws(() => updateSourceFeedGates(database, moderator.id, feedId, { liveEnabled: true }, "Attempt live enable", baseTime), /written permission/i);
+  assert.equal(factoryCalls, 0);
+
+  updateSourceFeedGates(database, moderator.id, feedId, {
+    permissionApproved: true,
+    permissionEvidenceReference: "permission-001",
     liveEnabled: true,
-  }, "Privacy review approved for fixture feed", baseTime);
+  }, "Written permission approved for fixture feed", baseTime);
   assert.equal(await startLiveSourceFeed(database, feedId, factory), "started");
   assert.equal(factoryCalls, 1);
 
@@ -98,14 +106,14 @@ test("live adapter creation is gated by permission, privacy review, and explicit
 test("edits and deletions propagate while stale changes require oldest-first Moderator review", () => {
   const database = createDatabase(":memory:");
   const moderator = actor(database);
-  const created = update({ updateId: 1, messageId: 10, date: 1787997000, listingId: "review-item", title: "Original title" });
+  const created = update({ updateId: 1, messageId: 10, date: 1787997000, title: "Original title" });
   assert.equal(ingestSourceUpdate(database, feedId, created, baseTime, secret).outcome, "applied");
-  const edited = update({ updateId: 2, messageId: 10, date: 1787997000, editDate: 1787997300, listingId: "review-item", title: "Edited title", event: "edited_message" });
+  const edited = update({ updateId: 2, messageId: 10, date: 1787997000, editDate: 1787997300, title: "Edited title", event: "edited_message" });
   assert.equal(ingestSourceUpdate(database, feedId, edited, baseTime, secret).outcome, "applied");
   assert.equal(findListings(database)[0].title, "Edited title");
 
-  const stale = update({ updateId: 3, messageId: 10, date: 1787997000, editDate: 1787997200, listingId: "review-item", title: "Stale title", event: "edited_message" });
-  const later = update({ updateId: 4, messageId: 10, date: 1787997000, editDate: 1787997400, listingId: "review-item", title: "Later title", event: "edited_message" });
+  const stale = update({ updateId: 3, messageId: 10, date: 1787997000, editDate: 1787997200, title: "Stale title", event: "edited_message" });
+  const later = update({ updateId: 4, messageId: 10, date: 1787997000, editDate: 1787997400, title: "Later title", event: "edited_message" });
   assert.equal(ingestSourceUpdate(database, feedId, stale, baseTime, secret).discrepancyType, "stale_revision");
   assert.equal(ingestSourceUpdate(database, feedId, later, baseTime, secret).discrepancyType, "earlier_discrepancy_open");
   const [first, second] = getSourceDiscrepancies(database);
@@ -123,7 +131,7 @@ test("edits and deletions propagate while stale changes require oldest-first Mod
 test("scoped consent controls attribution and withdrawal scrubs PII, content, and staged changes", () => {
   const database = createDatabase(":memory:");
   const moderator = actor(database);
-  const created = update({ updateId: 1, messageId: 20, authorId: "private-author", date: 1787997000, listingId: "consented-item" });
+  const created = update({ updateId: 1, messageId: 20, authorId: "private-author", date: 1787997000 });
   ingestSourceUpdate(database, feedId, created, baseTime, secret);
   assert.equal(findListings(database)[0].contactUrl, undefined);
 
@@ -138,13 +146,13 @@ test("scoped consent controls attribution and withdrawal scrubs PII, content, an
   assert.equal(findListings(database)[0].authorDisplayName, "Consenting Author");
   assert.equal(findListings(database)[0].contactUrl, "https://t.me/consenting_author_unavailable");
 
-  const stale = update({ updateId: 2, messageId: 20, authorId: "private-author", date: 1787997000, editDate: 1787996900, listingId: "consented-item", title: "Conflicting content", event: "edited_message" });
+  const stale = update({ updateId: 2, messageId: 20, authorId: "private-author", date: 1787997000, editDate: 1787996900, title: "Conflicting content", event: "edited_message" });
   ingestSourceUpdate(database, feedId, stale, baseTime, secret);
   withdrawSourceAuthorConsent(database, moderator.id, feedId, consent.id, "Author withdrew attribution and content consent", baseTime);
   assert.deepEqual(findListings(database), []);
   const stored = database.prepare("SELECT display_name, contact_url, evidence_reference, active FROM source_author_consents WHERE id = ?").get(consent.id);
   assert.deepEqual({ ...stored }, { display_name: null, contact_url: null, evidence_reference: null, active: 0 });
-  assert.equal(database.prepare("SELECT normalized_payload FROM source_posts WHERE public_id = 'consented-item'").get().normalized_payload, null);
+  assert.equal(database.prepare("SELECT normalized_payload FROM source_posts WHERE public_id = ?").get(created.listing.id).normalized_payload, null);
   const discrepancy = getSourceDiscrepancies(database)[0];
   assert.equal(discrepancy.redacted, true);
   assert.throws(() => resolveSourceDiscrepancy(database, moderator.id, discrepancy.id, "apply_source", "Cannot restore withdrawn content", baseTime), /cannot be applied/);
@@ -169,6 +177,68 @@ test("duplicates bypass quota, rate-limited retries preserve the cursor, and exp
   const expiredResult = ingestSourceUpdate(database, feedId, expired, new Date("2026-08-29T10:02:00Z"), secret);
   assert.equal(expiredResult.discrepancyType, "expired_update");
   assert.equal(getSourceDiscrepancies(database)[0].type, "expired_update");
+  database.close();
+});
+
+test("Marketplace expiry uses source revisions, hides at the exact boundary, and resets only after an applied edit", () => {
+  const database = createDatabase(":memory:");
+  const created = update({ updateId: 1, messageId: 41, date: 1787997600, title: "Expiry calculator" });
+  ingestSourceUpdate(database, feedId, created, baseTime, secret);
+  const expectedFirstExpiry = "2026-09-28T10:00:00.000Z";
+  assert.equal(findListings(database, {}, new Set(), { now: new Date("2026-09-28T09:59:59.999Z") })[0].expiresAt, expectedFirstExpiry);
+  assert.deepEqual(findListings(database, {}, new Set(), { now: new Date(expectedFirstExpiry) }), []);
+
+  const firstLifecycle = database.prepare("SELECT expires_at AS expiresAt FROM marketplace_listing_lifecycle WHERE listing_id = ?").get(created.listing.id);
+  assert.equal(ingestSourceUpdate(database, feedId, created, new Date("2026-09-28T10:00:00Z"), secret).status, "duplicate");
+  assert.deepEqual(database.prepare("SELECT expires_at AS expiresAt FROM marketplace_listing_lifecycle WHERE listing_id = ?").get(created.listing.id), firstLifecycle);
+
+  const editDate = Math.floor(new Date("2026-09-28T10:01:00Z").getTime() / 1000);
+  const edited = update({ updateId: 2, messageId: 41, date: 1787997600, editDate, title: "Reactivated calculator", event: "edited_message" });
+  assert.equal(ingestSourceUpdate(database, feedId, edited, new Date("2026-09-28T10:01:00Z"), secret).outcome, "applied");
+  const visible = findListings(database, {}, new Set(), { now: new Date("2026-09-28T10:01:00Z") });
+  assert.equal(visible[0].title, "Reactivated calculator");
+  assert.equal(visible[0].sourceTime, "2026-09-28T10:01:00.000Z");
+  assert.equal(visible[0].updatedAt, visible[0].sourceTime);
+  assert.equal(visible[0].expiresAt, "2026-10-28T10:01:00.000Z");
+  assert.equal(visible[0].attributionState, "withheld");
+  database.close();
+});
+
+test("unparseable messages retain only safe candidates and require a validated Moderator correction", () => {
+  const database = createDatabase(":memory:");
+  const moderator = actor(database, "correction");
+  const unparseable = update({
+    updateId: 1,
+    messageId: 51,
+    authorId: "private-correction-author",
+    date: 1787997600,
+    text: "Title: Bicycle phone holder\nPrice: $12\nDescription: Secure mount. Contact seller@example.com or @private_username",
+  });
+  const result = ingestSourceUpdate(database, feedId, unparseable, baseTime, secret);
+  assert.equal(result.discrepancyType, "unparseable_marketplace_message");
+  assert.deepEqual(findListings(database), []);
+  const [discrepancy] = getSourceDiscrepancies(database);
+  assert.deepEqual(discrepancy.incoming.parseIssues, ["category_ambiguous"]);
+  assert.equal(JSON.stringify(discrepancy).includes("seller@example.com"), false);
+  assert.equal(JSON.stringify(discrepancy).includes("private_username"), false);
+  assert.throws(() => resolveSourceDiscrepancy(database, moderator.id, discrepancy.id, "apply_source", "Publish without correction", baseTime), /required/);
+  assert.throws(() => resolveSourceDiscrepancy(database, moderator.id, discrepancy.id, "apply_source", "Reject invalid correction", baseTime, {
+    title: "Corrected holder", category: "Other", price: 12.5, description: "Description",
+  }), /invalid/);
+
+  resolveSourceDiscrepancy(database, moderator.id, discrepancy.id, "apply_source", "Corrected deterministic category and price", baseTime, {
+    title: "Bicycle phone holder",
+    category: "Transport",
+    price: 12,
+    description: "Secure handlebar mount.",
+    id: "moderator-controlled-id",
+    expiresAt: "2099-01-01T00:00:00Z",
+  });
+  const [listing] = findListings(database, {}, new Set(), { now: baseTime });
+  assert.equal(listing.id, unparseable.listingDefaults.id);
+  assert.equal(listing.category, "Transport");
+  assert.equal(listing.expiresAt, "2026-09-28T10:00:00.000Z");
+  assert.equal(database.prepare("SELECT COUNT(*) AS count FROM audit_log WHERE event_type = 'source_discrepancy_corrected'").get().count, 1);
   database.close();
 });
 
@@ -207,14 +277,17 @@ test("Operator and Moderator Source Feed APIs enforce roles and keep private ide
   });
   assert.equal(consent.status, 201);
   const publicListings = await api.get("/api/listings");
-  const lamp = publicListings.body.listings.find(({ id }) => id === "lamp");
+  const lamp = publicListings.body.listings.find(({ title }) => title === "Adjustable study lamp");
   assert.equal(lamp.authorDisplayName, "Lamp Fixture Author");
   assert.equal(lamp.contactUrl, "https://t.me/lamp_fixture_unavailable");
+  assert.equal(lamp.attributionState, "name_and_contact");
+  assert.equal(lamp.updatedAt, lamp.sourceTime);
+  assert.equal(new Date(lamp.expiresAt) - new Date(lamp.sourceTime), 30 * 24 * 60 * 60 * 1000);
   assert.equal(JSON.stringify(publicListings.body).includes("private-consent-evidence"), false);
   assert.equal(JSON.stringify(publicListings.body).includes("authorKeyHash"), false);
   assert.equal(JSON.stringify(publicListings.body).includes("sourceUrl"), false);
 
-  const staleLamp = update({ updateId: 3000, messageId: 504, authorId: "fixture-author-lamp", date: 1787991000, editDate: 1787991500, listingId: "lamp", title: "Stale lamp title", event: "edited_message" });
+  const staleLamp = update({ updateId: 3000, messageId: 504, authorId: "fixture-author-lamp", date: 1787991000, editDate: 1787991500, title: "Stale lamp title", category: "Room & Living", event: "edited_message" });
   ingestSourceUpdate(database, feedId, staleLamp, baseTime, secret);
   const queue = await api.get("/api/moderation/source-discrepancies").set("Cookie", moderatorCookie);
   assert.equal(queue.status, 200);

@@ -12,14 +12,14 @@ function error(message, status) {
   return Object.assign(new Error(message), { status });
 }
 
-function marketplaceListingEvidence(database, targetId) {
-  const listing = findListings(database, {}, hiddenListingIds(database))
+function marketplaceListingEvidence(database, targetId, now) {
+  const listing = findListings(database, {}, hiddenListingIds(database), { now })
     .find(({ id }) => id === targetId);
   if (!listing) throw error("Reported content not found.", 404);
   return { postId: listing.id, label: listing.title, text: listing.description };
 }
 
-function commentEvidence(database, targetId) {
+function commentEvidence(database, targetId, now) {
   const comment = database.prepare(`
     SELECT c.body, c.post_id, c.deleted_at, p.display_name,
       COALESCE(cm.hidden, 0) AS hidden
@@ -28,7 +28,9 @@ function commentEvidence(database, targetId) {
     LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
     WHERE c.id = ?
   `).get(targetId);
-  if (!comment || comment.deleted_at || comment.hidden || hiddenListingIds(database).has(comment.post_id)) {
+  const listingVisible = comment && findListings(database, {}, hiddenListingIds(database), { now })
+    .some(({ id }) => id === comment.post_id);
+  if (!comment || comment.deleted_at || comment.hidden || !listingVisible) {
     throw error("Reported content not found.", 404);
   }
   return { postId: comment.post_id, label: `${comment.display_name}'s Comment`, text: comment.body };
@@ -54,7 +56,7 @@ export function createContentReport(database, participant, input, now) {
   const targetHandler = targetHandlers[targetType];
   if (!targetHandler) throw error("Content Report target type is invalid.", 422);
   withImmediateTransaction(database, () => {
-    const evidence = targetHandler.evidence(database, targetId);
+    const evidence = targetHandler.evidence(database, targetId, now);
     database.prepare(`
       INSERT INTO content_reports (
         id, target_type, target_id, target_post_id, reporter_participant_id,
@@ -130,7 +132,7 @@ function hideReportedComment(database, actorId, report, _reason, now) {
 }
 
 function hideReportedListing(database, actorId, report, reason, now, identitySecret) {
-  const listing = findListings(database, {}, new Set(), { includeInternal: true })
+  const listing = findListings(database, {}, new Set(), { includeInternal: true, now })
     .find(({ id }) => id === report.target_id);
   if (!listing || hiddenListingIds(database).has(report.target_id)) {
     return { outcome: "already_unavailable", authorParticipantId: null };

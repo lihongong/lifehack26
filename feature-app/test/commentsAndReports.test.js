@@ -17,6 +17,14 @@ function createTestDatabase() {
   return database;
 }
 
+function fixtureListingId(database) {
+  return database.prepare("SELECT id FROM marketplace_listings WHERE title = 'TI-84 Plus calculator'").get().id;
+}
+
+function fixtureCommentsPath(database) {
+  return `/api/listings/${fixtureListingId(database)}/comments`;
+}
+
 function createParticipant(database, subject, displayName) {
   const launched = completeLaunch(
     database,
@@ -52,10 +60,10 @@ test("public Marketplace Comment threads allow one authenticated reply level wit
   const api = request(createApp({ database, clock: createClock(now), environment: "test" }));
 
   try {
-    assert.equal((await api.post("/api/listings/calculator/comments").send({ body: "Anonymous" })).status, 401);
+    assert.equal((await api.post(fixtureCommentsPath(database)).send({ body: "Anonymous" })).status, 401);
 
     const topLevel = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Is this still available?" });
     assert.equal(topLevel.status, 201);
@@ -63,18 +71,18 @@ test("public Marketplace Comment threads allow one authenticated reply level wit
     assert.equal(topLevel.body.comment.author.displayName, "Comment Casey");
 
     const reply = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", replier.cookie)
       .send({ body: "Yes, I saw the update today.", parentCommentId: topLevel.body.comment.id });
     assert.equal(reply.status, 201);
 
     const tooDeep = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Thanks!", parentCommentId: reply.body.comment.id });
     assert.equal(tooDeep.status, 422);
 
-    const publicThread = await api.get("/api/listings/calculator/comments");
+    const publicThread = await api.get(fixtureCommentsPath(database));
     assert.equal(publicThread.status, 200);
     assert.equal(publicThread.body.comments.length, 1);
     assert.equal(publicThread.body.comments[0].replies.length, 1);
@@ -97,7 +105,7 @@ test("obvious contact details require explicit confirmation before Comment submi
 
   try {
     const warned = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Email me at parker@example.com" });
     assert.equal(warned.status, 409);
@@ -109,13 +117,13 @@ test("obvious contact details require explicit confirmation before Comment submi
     assert.equal(database.prepare("SELECT COUNT(*) AS count FROM comments").get().count, 0);
 
     const confirmed = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Email me at parker@example.com", confirmContactDetails: true });
     assert.equal(confirmed.status, 201);
 
     const phoneWarning = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "My number is +65 8123 4567" });
     assert.equal(phoneWarning.status, 409);
@@ -135,15 +143,15 @@ test("Comment authors can edit and delete while removed parents preserve their r
 
   try {
     const topLevel = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Original wording" });
     const standalone = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Delete me completely" });
     await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", replier.cookie)
       .send({ body: "A reply that remains", parentCommentId: topLevel.body.comment.id });
 
@@ -171,7 +179,7 @@ test("Comment authors can edit and delete while removed parents preserve their r
       204,
     );
 
-    const thread = (await api.get("/api/listings/calculator/comments")).body.comments;
+    const thread = (await api.get(fixtureCommentsPath(database))).body.comments;
     assert.equal(thread.length, 1);
     assert.equal(thread[0].body, null);
     assert.equal(thread[0].deleted, true);
@@ -191,11 +199,11 @@ test("reply creation atomically creates a private in-app notification for the pa
 
   try {
     const topLevel = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Does the calculator include a cover?" });
     await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", replier.cookie)
       .send({ body: "The cover is shown in the source post.", parentCommentId: topLevel.body.comment.id });
 
@@ -214,8 +222,9 @@ test("reply creation atomically creates a private in-app notification for the pa
         INSERT INTO comments (
           id, post_type, post_id, parent_comment_id, author_participant_id,
           body, created_at, updated_at
-        ) VALUES ('too-deep', 'marketplace_listing', 'calculator', ?, ?, 'No', ?, ?)
+        ) VALUES ('too-deep', 'marketplace_listing', ?, ?, ?, 'No', ?, ?)
       `).run(
+        fixtureListingId(database),
         database.prepare("SELECT id FROM comments WHERE parent_comment_id = ?").get(topLevel.body.comment.id).id,
         author.participant.id,
         now.toISOString(),
@@ -239,7 +248,7 @@ test("Content Reports preserve submission evidence through later edits and delet
 
   try {
     const comment = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Original private-looking evidence" });
     const gemBefore = await api.get("/api/me/gems").set("Cookie", reporter.cookie);
@@ -292,7 +301,7 @@ test("Moderator resolution hides a reported Comment and independently closes dup
 
   try {
     const comment = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "Content that needs review" });
     const firstReport = await api
@@ -319,7 +328,7 @@ test("Moderator resolution hides a reported Comment and independently closes dup
     assert.equal(duplicateResolution.body.resolution.outcome, "already_unavailable");
     assert.equal((await api.get("/api/moderation/reports").set("Cookie", moderator.cookie)).body.reports.length, 0);
 
-    const publicComment = (await api.get("/api/listings/calculator/comments")).body.comments[0];
+    const publicComment = (await api.get(fixtureCommentsPath(database))).body.comments[0];
     assert.equal(publicComment.body, null);
     assert.equal(publicComment.hidden, true);
     assert.equal(publicComment.replies.length, 0);
@@ -347,7 +356,7 @@ test("Moderators can directly hide any Comment with an immutable audit reason", 
 
   try {
     const comment = await api
-      .post("/api/listings/calculator/comments")
+      .post(fixtureCommentsPath(database))
       .set("Cookie", author.cookie)
       .send({ body: "A directly moderated Comment" });
     const hidden = await api
@@ -356,7 +365,7 @@ test("Moderators can directly hide any Comment with an immutable audit reason", 
       .send({ hidden: true, reason: "Contains unsafe instructions" });
     assert.equal(hidden.status, 200);
     assert.equal(hidden.body.comment.hidden, true);
-    assert.equal((await api.get("/api/listings/calculator/comments")).body.comments[0].body, null);
+    assert.equal((await api.get(fixtureCommentsPath(database))).body.comments[0].body, null);
 
     const restorationRejected = await api
       .patch(`/api/moderation/comments/${comment.body.comment.id}`)
@@ -385,7 +394,7 @@ test("a resolved Marketplace Listing report hides the public listing", async () 
     const report = await api
       .post("/api/content-reports")
       .set("Cookie", reporter.cookie)
-      .send({ targetType: "marketplace_listing", targetId: "calculator", category: "staleness" });
+      .send({ targetType: "marketplace_listing", targetId: fixtureListingId(database), category: "staleness" });
     assert.equal(report.status, 201);
     const resolution = await api
       .patch(`/api/moderation/reports/${report.body.report.id}`)
@@ -393,8 +402,8 @@ test("a resolved Marketplace Listing report hides the public listing", async () 
       .send({ outcome: "hidden", reason: "Source post is no longer current" });
     assert.equal(resolution.status, 200);
     assert.equal(resolution.body.resolution.outcome, "hidden");
-    assert.equal((await api.get("/api/listings")).body.listings.some(({ id }) => id === "calculator"), false);
-    assert.equal((await api.get("/api/listings/calculator/comments")).status, 404);
+    assert.equal((await api.get("/api/listings")).body.listings.some(({ id }) => id === fixtureListingId(database)), false);
+    assert.equal((await api.get(fixtureCommentsPath(database))).status, 404);
   } finally {
     database.close();
   }

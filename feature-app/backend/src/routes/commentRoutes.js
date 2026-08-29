@@ -14,7 +14,7 @@ export function commentRoutes({ database, clock }) {
   const requireCommentPolicy = requirePolicyAcceptance({ database, action: "comments" });
 
   router.get("/listings/:listingId/comments", (request, response) => {
-    response.json({ comments: listMarketplaceComments(database, request.params.listingId) });
+    response.json({ comments: listMarketplaceComments(database, request.params.listingId, clock.now()) });
   });
   router.post(
     "/listings/:listingId/comments",

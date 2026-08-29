@@ -22,6 +22,14 @@ test("Operator gates and Moderator consent and discrepancy review protect a Sour
   await page.getByLabel("Reason", { exact: true }).fill("Trusted Source Feed Moderator");
   await page.getByRole("button", { name: "Enroll Moderator" }).click();
 
+  const blockedEnable = await page.request.patch("/api/operator/source-feeds/telegram-marketplace-demo/gates", { data: {
+    privacyApproved: true,
+    privacyEvidenceReference: "privacy-before-permission-e2e",
+    liveEnabled: true,
+    reason: "Prove written permission remains mandatory",
+  } });
+  expect(blockedEnable.status()).toBe(409);
+
   await page.getByLabel("Written permission approved").check();
   await page.getByLabel("Permission evidence reference").fill("permission-evidence-e2e");
   await page.getByLabel("Privacy review approved").check();
@@ -56,6 +64,18 @@ test("Operator gates and Moderator consent and discrepancy review protect a Sour
   await discrepancy.getByLabel("Resolution reason").fill("Stored calculator version is newer");
   await discrepancy.getByRole("button", { name: "Retain current" }).click();
   await expect(moderatorPage.getByRole("status")).toContainText("retained");
+
+  const replay = await moderatorPage.request.post("/api/dev/source-feeds/replay", { data: { fixture: "marketplace-unparseable" } });
+  expect(replay.ok()).toBe(true);
+  await moderatorPage.reload();
+  const unparseable = moderatorPage.locator(".moderation-list li").filter({ hasText: "Unparseable Marketplace Message" });
+  await expect(unparseable).toBeVisible();
+  await unparseable.getByLabel("Corrected category").selectOption("Transport");
+  await unparseable.getByLabel("Resolution reason").fill("Corrected the ambiguous category using Moderator review");
+  await unparseable.getByRole("button", { name: "Correct and publish" }).click();
+  await expect(moderatorPage.getByRole("status")).toContainText("applied");
+  await publicPage.reload();
+  await expect(publicPage.getByRole("heading", { name: "Bicycle phone holder" })).toBeVisible();
 
   const consent = moderatorPage.locator(".management-list li").filter({ hasText: "Lamp Fixture Author" });
   await consent.getByLabel("Withdrawal reason").fill("Fixture author withdrew consent");
