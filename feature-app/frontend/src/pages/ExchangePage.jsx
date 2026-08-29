@@ -1,11 +1,15 @@
+import { useLocation } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
 import FeatureTabs from "../components/FeatureTabs.jsx";
 import BuffetFeed from "../components/BuffetFeed.jsx";
 import MarketplaceFeed from "../components/MarketplaceFeed.jsx";
 import LostAndFoundFeed from "../components/LostAndFoundFeed.jsx";
+
 const routes = { "/buffets": "Buffets", "/lost-and-found": "Lost & Found" };
+
 export default function ExchangePage() {
-  const active = routes[window.location.pathname] || "Marketplace";
+  const { pathname } = useLocation();
+  const active = routes[pathname] || "Marketplace";
   return (
     <main className="app-shell">
       <AppHeader />
@@ -18,7 +22,7 @@ export default function ExchangePage() {
         </h1>
         <p>A public preview for the NUS community.</p>
       </section>
-      <FeatureTabs active={active} />
+      <FeatureTabs />
       {active === "Marketplace" ? (
         <MarketplaceFeed />
       ) : active === "Buffets" ? (

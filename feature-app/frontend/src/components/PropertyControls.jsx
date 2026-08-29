@@ -1,16 +1,11 @@
-import { CalendarDays, ChevronDown, RotateCcw, Search } from "lucide-react";
+import { CalendarDays, RotateCcw } from "lucide-react";
+import { SearchControl, SelectControl as ExchangeSelectControl } from "./ExchangePrimitives.jsx";
 
 export function SelectControl({ label, value, onChange, options, empty, className = "" }) {
-  return <label className={`select-control ${className}`.trim()}>
-    <span className="control-label">{label}</span>
-    <span className="select-shell">
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {empty && <option value="">{empty}</option>}
-        {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
-      </select>
-      <ChevronDown size={16} strokeWidth={2.25} aria-hidden="true" />
-    </span>
-  </label>;
+  return <ExchangeSelectControl label={label} value={value} onChange={(event) => onChange(event.target.value)} className={className}>
+    {empty && <option value="">{empty}</option>}
+    {options.map(([optionValue, optionLabel]) => <option key={optionValue} value={optionValue}>{optionLabel}</option>)}
+  </ExchangeSelectControl>;
 }
 
 export function DateControl({ label, value, onChange, min, max, required = false }) {
@@ -42,36 +37,29 @@ export function PropertyFilterPanel({
 }) {
   const activeCount = [values.query, values.category, values.zone, values.dateFrom, values.dateTo]
     .filter(Boolean).length;
-  const advancedCount = [values.category, values.zone, values.dateFrom, values.dateTo].filter(Boolean).length;
   const clear = () => {
     for (const key of ["query", "category", "zone", "dateFrom", "dateTo"]) onChange(key, "");
   };
 
-  return <div className="property-filter-panel" aria-label={ariaLabel}>
+  return <div className="exchange-filters property-filter-panel" aria-label={ariaLabel}>
     <div className="filter-panel-heading">
       <div><strong>{title}</strong><span>{hint}</span></div>
       <button type="button" className="clear-filters" disabled={!activeCount} onClick={clear}>
         <RotateCcw size={14} aria-hidden="true" />Clear{activeCount ? ` (${activeCount})` : ""}
       </button>
     </div>
-    <label className="search-field property-search">
-      <Search size={18} aria-hidden="true" />
-      <input aria-label={searchLabel} type="search" placeholder={searchPlaceholder} value={values.query} onChange={(event) => onChange("query", event.target.value)} />
-    </label>
-    <details className="more-property-filters">
-      <summary><span>Category, zone and date</span>{advancedCount > 0 && <small>{advancedCount} active</small>}<ChevronDown size={16} aria-hidden="true" /></summary>
-      <div className="more-property-filter-content">
-        <div className="filter-control-grid">
-          <SelectControl label={categoryLabel} value={values.category} onChange={(value) => onChange("category", value)} options={categories} empty="All categories" />
-          <SelectControl label={zoneLabel} value={values.zone} onChange={(value) => onChange("zone", value)} options={zones} empty="All zones" />
-        </div>
-        <fieldset className="date-range-control">
-          <legend>Date range</legend>
-          <DateControl label={fromLabel} value={values.dateFrom} max={values.dateTo || today} onChange={(value) => onChange("dateFrom", value)} />
-          <DateControl label={toLabel} value={values.dateTo} min={values.dateFrom || undefined} max={today} onChange={(value) => onChange("dateTo", value)} />
-        </fieldset>
-        {sortOptions && <SelectControl className="sort-control" label="Order" value={values.sort} onChange={(value) => onChange("sort", value)} options={sortOptions} />}
+    <SearchControl className="property-search" label={searchLabel} placeholder={searchPlaceholder} value={values.query} onChange={(event) => onChange("query", event.target.value)} />
+    <div className="more-property-filter-content">
+      <div className="filter-control-grid">
+        <SelectControl label={categoryLabel} value={values.category} onChange={(value) => onChange("category", value)} options={categories} empty="All categories" />
+        <SelectControl label={zoneLabel} value={values.zone} onChange={(value) => onChange("zone", value)} options={zones} empty="All zones" />
       </div>
-    </details>
+      <fieldset className="date-range-control">
+        <legend>Date range</legend>
+        <DateControl label={fromLabel} value={values.dateFrom} max={values.dateTo || today} onChange={(value) => onChange("dateFrom", value)} />
+        <DateControl label={toLabel} value={values.dateTo} min={values.dateFrom || undefined} max={today} onChange={(value) => onChange("dateTo", value)} />
+      </fieldset>
+      {sortOptions && <SelectControl className="sort-control" label="Order" value={values.sort} onChange={(value) => onChange("sort", value)} options={sortOptions} />}
+    </div>
   </div>;
 }

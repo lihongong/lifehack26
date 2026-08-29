@@ -1,13 +1,14 @@
-import { Search } from "lucide-react";
-import { SelectControl } from "./ListingFilters.jsx";
+import { SearchControl, SelectControl } from "./ExchangePrimitives.jsx";
 
 export default function BuffetFilters({ filters, zones, onChange }) {
   return (
-    <div className="filters">
-      <label className="search-field">
-        <Search aria-hidden="true" size={20} strokeWidth={2.1} />
-        <input type="search" value={filters.query} onChange={(event) => onChange({ query: event.target.value })} placeholder="Search Buffet Posts" aria-label="Search Buffet Posts" />
-      </label>
+    <div className="exchange-filters">
+      <SearchControl
+        label="Search Buffet Posts"
+        placeholder="Search Buffet Posts"
+        value={filters.query}
+        onChange={(event) => onChange({ query: event.target.value })}
+      />
       <div className="filter-row">
         <SelectControl label="Filter Buffet Posts by NUS Zone" value={filters.zone} onChange={(event) => onChange({ zone: event.target.value })}>
           <option value="all">All zones</option>

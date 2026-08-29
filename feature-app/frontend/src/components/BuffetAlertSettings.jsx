@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SelectControl } from "./ListingFilters.jsx";
+import { SelectControl } from "./ExchangePrimitives.jsx";
 import { synchronizeBuffetAlerts, updateBuffetAlertPreference } from "../api/buffetApi.js";
 
 export default function BuffetAlertSettings({ data, onData }) {
@@ -20,7 +20,7 @@ export default function BuffetAlertSettings({ data, onData }) {
   };
 
   return (
-    <section className="buffet-alert-settings" aria-labelledby="buffet-alert-settings-title">
+    <section className="exchange-panel buffet-alert-settings" aria-labelledby="buffet-alert-settings-title">
       <div>
         <p className="eyebrow">PRIVATE ALERT SETTINGS</p>
         <h3 id="buffet-alert-settings-title">Buffet Alerts</h3>
