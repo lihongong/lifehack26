@@ -288,6 +288,7 @@ select {
   font-size: 11px;
   font-weight: 800;
 }
+.source-author { color: var(--muted); font-size: 10px; }
 .listing-card h3 {
   margin: 17px 0 5px;
   font-size: 18px;
@@ -489,6 +490,10 @@ select {
 .danger-action { min-height: 42px; border: 1px solid #81483f; border-radius: 11px; background: #3a1c1a; color: #ffb3a6; font: inherit; font-weight: 750; cursor: pointer; }
 .moderation-list li.is-hidden { border-color: #715044; background: #231b1b; }
 .moderation-list p { margin: 0; font-size: 11px; }
+.gate-toggle { display: flex !important; grid-template-columns: auto 1fr; flex-direction: row; align-items: center; }
+.gate-toggle input { width: auto; height: auto; }
+.source-snapshot { padding: 10px; border-radius: 9px; background: #0d121c; color: #aeb8ce; font-size: 11px; line-height: 1.45; }
+.decision-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .audit-log li > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .audit-log strong { color: var(--heading); font-size: 12px; }
 .audit-log span,
