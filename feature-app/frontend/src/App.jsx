@@ -3,6 +3,7 @@ import ExchangePage from "./pages/ExchangePage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import ProfileSetupPage from "./pages/ProfileSetupPage.jsx";
 import PublicProfilePage from "./pages/PublicProfilePage.jsx";
+import PolicyPage from "./pages/PolicyPage.jsx";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
       <Route path="/lost-and-found" element={<ExchangePage />} />
       <Route path="/profile/setup" element={<ProfileSetupPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/policies" element={<PolicyPage />} />
       <Route path="/participants/:publicId" element={<PublicProfilePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,15 +1,21 @@
 import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
 import ProfileForm from "../components/ProfileForm.jsx";
+import ProtectedActionsPanel from "../components/ProtectedActionsPanel.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { getGems, logout, updateProfile } from "../api/participantApi.js";
+import { getPolicyAcceptances } from "../api/policyApi.js";
 import { useEffect, useState } from "react";
 
 export default function ProfilePage() {
   const { participant, loading, refresh } = useAuth();
   const [ledger, setLedger] = useState([]);
+  const [acceptances, setAcceptances] = useState([]);
   useEffect(() => {
-    if (participant) getGems().then((data) => setLedger(data.entries));
+    if (participant) {
+      getGems().then((data) => setLedger(data.entries));
+      getPolicyAcceptances().then((data) => setAcceptances(data.acceptances));
+    }
   }, [participant]);
   if (loading)
     return (
@@ -57,6 +63,20 @@ export default function ProfilePage() {
             await refresh();
           }}
         />
+        <ProtectedActionsPanel />
+        <section className="acceptance-history" aria-labelledby="acceptance-history-title">
+          <h2 id="acceptance-history-title">Policy acceptance history</h2>
+          {acceptances.length ? (
+            <ul>
+              {acceptances.map((acceptance) => (
+                <li key={acceptance.id}>
+                  <span><strong>{acceptance.type === "terms" ? "Terms" : "Privacy"}</strong> · version {acceptance.version}</span>
+                  <time dateTime={acceptance.acceptedAt}>{formatAcceptanceTime(acceptance.acceptedAt)}</time>
+                </li>
+              ))}
+            </ul>
+          ) : <p>No policy acceptances recorded yet.</p>}
+        </section>
         <h2>Gem Ledger</h2>
         <ul className="ledger">
           {ledger.map((entry) => (
@@ -81,4 +101,12 @@ export default function ProfilePage() {
       </section>
     </main>
   );
+}
+
+function formatAcceptanceTime(value) {
+  return new Intl.DateTimeFormat("en-SG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Singapore",
+  }).format(new Date(value));
 }

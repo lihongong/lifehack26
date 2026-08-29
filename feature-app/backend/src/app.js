@@ -6,6 +6,8 @@ import { authRoutes } from "./routes/authRoutes.js";
 import { devRoutes } from "./routes/devRoutes.js";
 import { integrationRoutes } from "./routes/integrationRoutes.js";
 import { profileRoutes } from "./routes/profileRoutes.js";
+import { policyRoutes } from "./routes/policyRoutes.js";
+import { protectedActionRoutes } from "./routes/protectedActionRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { participantMiddleware } from "./middleware/requireParticipant.js";
 import { createDatabase } from "./db/database.js";
@@ -25,6 +27,8 @@ export function createApp({ database = createDatabase(), clock = createClock(), 
   app.use("/api/integrations", integrationRoutes({ database, clock, univusAdapter }));
   app.use("/api/auth", authRoutes({ database, clock, environment }));
   app.use("/api", profileRoutes({ database, clock }));
+  app.use("/api", policyRoutes({ database, clock }));
+  app.use("/api/protected-actions", protectedActionRoutes({ database }));
   app.use("/api/dev", devRoutes({ database, clock, environment }));
   if (environment !== "production") app.use("/univus", express.static(mockHomepage));
   app.use(express.static(frontendDist));

@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -10,6 +10,9 @@ export function createDatabase(
 ) {
   const database = new DatabaseSync(path);
   database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
-  database.exec(readFileSync(join(currentDir, "../migrations/001_participants.sql"), "utf8"));
+  const migrationsDir = join(currentDir, "../migrations");
+  for (const migration of readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort()) {
+    database.exec(readFileSync(join(migrationsDir, migration), "utf8"));
+  }
   return database;
 }
