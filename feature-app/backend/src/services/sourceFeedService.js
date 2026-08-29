@@ -1,5 +1,7 @@
 import { validateReason, recordAudit } from "./privilegeService.js";
-import { digest, hashSourceAuthor, sourceEventForStorage, stableId } from "../sourceFeeds/sourceFeedDomain.js";
+import { digest, hashSourceAuthor, normalizeCorrectedMarketplaceListing, sourceEventForStorage, stableId } from "../sourceFeeds/sourceFeedDomain.js";
+
+export const MARKETPLACE_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000;
 
 function fail(message, status) {
   throw Object.assign(new Error(message), { status });
@@ -18,6 +20,21 @@ function booleanInput(value, label) {
 
 function parseJson(value) {
   return value ? JSON.parse(value) : null;
+}
+
+function safeListingSnapshot(listing) {
+  if (!listing) return null;
+  return {
+    id: listing.id,
+    title: listing.title,
+    category: listing.category,
+    price: listing.price,
+    description: listing.description,
+    sourceName: listing.sourceName,
+    imageUrl: listing.imageUrl || null,
+    imageAlt: listing.imageAlt || null,
+    fictional: Boolean(listing.fictional),
+  };
 }
 
 function feedRow(database, feedId) {
@@ -194,6 +211,12 @@ function applyEvent(database, feedId, event, authorKeyHash, now, { clearDivergen
     event.listing.description, event.listing.sourceName, event.listing.sourceUrl,
     event.listing.imageUrl, event.listing.imageAlt, event.listing.fictional ? 1 : 0, revisionAt,
   );
+  database.prepare(`
+    INSERT INTO marketplace_listing_lifecycle (listing_id, expires_at, expiry_basis, source_revision_at)
+    VALUES (?, ?, 'default_30_days', ?)
+    ON CONFLICT(listing_id) DO UPDATE SET expires_at = excluded.expires_at,
+      expiry_basis = excluded.expiry_basis, source_revision_at = excluded.source_revision_at
+  `).run(event.listing.id, new Date(event.sourceEventAt.getTime() + MARKETPLACE_EXPIRY_MS).toISOString(), revisionAt);
 }
 
 function conflictType(database, feed, event, authorKeyHash, current, now) {
@@ -203,6 +226,7 @@ function conflictType(database, feed, event, authorKeyHash, current, now) {
     SELECT 1 FROM source_discrepancies WHERE feed_id = ? AND source_post_key = ? AND status = 'open' LIMIT 1
   `).get(feed.id, event.sourcePostKey);
   if (pending) return "earlier_discrepancy_open";
+  if (event.parseIssues?.length) return "unparseable_marketplace_message";
   if (!current) return event.eventType === "edit" ? "edit_without_create" : null;
   if (current.author_key_hash !== authorKeyHash) return "source_author_changed";
   if (current.divergent) return "retained_version";
@@ -403,12 +427,18 @@ function discrepancyView(row) {
     id: row.id,
     feedId: row.feed_id,
     feedName: row.feed_name,
-    listingId: row.public_id || incoming?.listing?.id || null,
+    listingId: row.public_id || incoming?.listing?.id || incoming?.listingDefaults?.id || null,
     type: row.discrepancy_type,
     status: row.status,
     redacted: Boolean(row.redacted),
-    incoming: incoming ? { eventType: incoming.eventType, revisionAt: incoming.revisionAt, listing: incoming.listing } : null,
-    current,
+    incoming: incoming ? {
+      eventType: incoming.eventType,
+      revisionAt: incoming.revisionAt,
+      listing: safeListingSnapshot(incoming.listing),
+      parseIssues: incoming.parseIssues || [],
+      candidate: incoming.parseCandidate || null,
+    } : null,
+    current: safeListingSnapshot(current),
     decision: row.decision || null,
     resolutionReason: row.resolution_reason || null,
     createdAt: row.created_at,
@@ -427,7 +457,7 @@ export function getSourceDiscrepancies(database, status = "open") {
   `).all(status).map(discrepancyView);
 }
 
-export function resolveSourceDiscrepancy(database, actorId, discrepancyId, decision, reasonInput, now) {
+export function resolveSourceDiscrepancy(database, actorId, discrepancyId, decision, reasonInput, now, correctedListing = null) {
   if (!['apply_source', 'retain_current'].includes(decision)) fail("Decision must be apply_source or retain_current.", 422);
   const reason = validateReason(reasonInput);
   const discrepancy = database.prepare("SELECT * FROM source_discrepancies WHERE id = ?").get(discrepancyId);
@@ -445,12 +475,18 @@ export function resolveSourceDiscrepancy(database, actorId, discrepancyId, decis
   try {
     if (decision === "apply_source") {
       const incoming = parseJson(discrepancy.incoming_event);
+      const unparseable = Boolean(incoming.parseIssues?.length);
+      if (unparseable && !correctedListing) fail("Corrected Marketplace Listing fields are required for unparseable source content.", 422);
+      if (!unparseable && correctedListing) fail("Corrected Listing fields are allowed only for unparseable source content.", 422);
+      const listing = unparseable
+        ? normalizeCorrectedMarketplaceListing(correctedListing, incoming.listingDefaults)
+        : incoming.listing;
       applyEvent(database, discrepancy.feed_id, {
         updateId: discrepancy.update_id,
         eventType: incoming.eventType,
         sourcePostKey: incoming.sourcePostKey,
         sourceEventAt: new Date(incoming.revisionAt),
-        listing: incoming.listing,
+        listing,
       }, incoming.authorKeyHash, now);
     } else {
       database.prepare(`
@@ -463,7 +499,9 @@ export function resolveSourceDiscrepancy(database, actorId, discrepancyId, decis
         resolved_by_participant_id = ?, resolved_at = ? WHERE id = ?
     `).run(decision, reason, actorId, now.toISOString(), discrepancyId);
     recordAudit(database, {
-      eventType: decision === "apply_source" ? "source_discrepancy_applied" : "source_discrepancy_retained",
+      eventType: decision === "apply_source"
+        ? (correctedListing ? "source_discrepancy_corrected" : "source_discrepancy_applied")
+        : "source_discrepancy_retained",
       actorId,
       targetType: "source_discrepancy",
       targetId: discrepancyId,

@@ -34,12 +34,19 @@ Only the Platform Operator can read the complete audit trail through `/api/opera
 
 Marketplace Listings are persisted from versioned Telegram-style fixtures rather than a hard-coded application array.
 Fixture replay uses an allowlist, an injected clock, and a private source-identity hashing secret, and it never reads a Telegram token or opens a network connection.
+The fixture adapter accepts representative Telegram message text and applies a deterministic rule-based Marketplace parser with no AI or network dependency.
+The parser recognizes labeled fields first, then controlled title, whole-SGD price, description, and four-category fallbacks; ambiguous or invalid messages become Source Discrepancies.
+Contact-like text and source-message identity fields are removed before normalized content or discrepancy candidates are persisted.
 The live adapter boundary remains disabled until a Platform Operator records per-feed written permission, approves the privacy review, and explicitly enables live ingestion.
 Revoking either approval disables live ingestion automatically.
 
 Processed update identifiers and non-identifying deletion tombstones are immutable.
 Duplicate updates are idempotent, rate-limited updates remain retryable without advancing the feed cursor, and updates older than the configured window become Source Discrepancies.
 Monotonic source edits and deletions propagate automatically, while stale, divergent, or otherwise conflicting updates wait for a Moderator to apply the source version or retain the stored version with a reason.
+Unparseable messages expose only safe candidate fields to a Moderator, who may correct and publish them through the same Marketplace Listing validator.
+Marketplace Listings expire publicly exactly 30 days after the latest applied source create or edit, while normalized synchronization state remains available and a later source edit reactivates the Listing.
+Public Marketplace responses expose `sourceTime`, `expiresAt`, and an explicit scoped `attributionState`, with `updatedAt` retained as an alias for `sourceTime`.
+The Marketplace frontend refreshes every 30 seconds so an expired Listing disappears without a manual reload.
 
 A Moderator records author consent separately from Source Feed permission, with independent public display-name and contact scopes and a private evidence reference.
 Public Marketplace responses omit source identifiers, author identity, and contact data unless active scoped consent permits the relevant attribution.
@@ -65,7 +72,7 @@ Non-production uNivUS launches support fixed `operator`, `moderator`, and `parti
 Production rejects the mock adapter and never accepts demo identity selection.
 Playwright starts the app with an in-memory database and the mock Operator's stable subject configured for repeatable role and session-revocation tests.
 Non-production startup and reset replay the fictional baseline Marketplace fixture, while production starts with an empty disabled Source Feed.
-Run `npm run replay:source-fixtures` to verify the baseline fixture or append an allowlisted fixture name such as `consent-lifecycle`.
+Run `npm run replay:source-fixtures` to verify the baseline fixture or append an allowlisted fixture name such as `consent-lifecycle` or `marketplace-unparseable`.
 Run `npm test`, `npm run build`, and `npm run test:e2e` from this directory before merging a change.
 
 ## Issue workflow

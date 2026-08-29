@@ -6,96 +6,60 @@
     {
       "type": "telegram_update",
       "at": "2026-08-27T03:11:00Z",
+      "media": { "imageUrl": "/images/listings/monitor.svg", "imageAlt": "Illustration of a desktop monitor" },
       "update": {
         "update_id": 1001,
         "message": {
           "message_id": 501,
           "date": 1787800200,
-          "from": { "id": "fixture-author-monitor" },
-          "marketplace_listing": {
-            "id": "monitor",
-            "title": "24-inch USB-C monitor",
-            "category": "Electronics",
-            "price": 120,
-            "description": "Crisp 1080p display with USB-C input.",
-            "source_name": "NUS Marketplace",
-            "source_url": "https://example.com/seller/monitor",
-            "image_url": "/images/listings/monitor.svg",
-            "image_alt": "Illustration of a desktop monitor",
-            "fictional": true
-          }
+          "chat": { "username": "nus_marketplace_demo" },
+          "from": { "id": "fixture-author-monitor", "first_name": "Private Monitor Seller", "username": "private_monitor_seller" },
+          "text": "WTS: 24-inch USB-C monitor\nPrice: S$120\nCrisp 1080p display with USB-C input.\nContact: @private_monitor_seller"
         }
       }
     },
     {
       "type": "telegram_update",
       "at": "2026-08-28T10:16:00Z",
+      "media": { "imageUrl": "/images/listings/bike-lock.svg", "imageAlt": "Illustration of a bicycle U-lock and cable" },
       "update": {
         "update_id": 1002,
         "message": {
           "message_id": 502,
           "date": 1787912100,
-          "from": { "id": "fixture-author-lock" },
-          "marketplace_listing": {
-            "id": "bike-lock",
-            "title": "U-lock and cable set",
-            "category": "Transport",
-            "price": 12,
-            "description": "Compact lock set for campus cycling. Two keys included.",
-            "source_name": "NUS Marketplace",
-            "source_url": "https://example.com/seller/bike-lock",
-            "image_url": "/images/listings/bike-lock.svg",
-            "image_alt": "Illustration of a bicycle U-lock and cable",
-            "fictional": true
-          }
+          "chat": { "username": "nus_marketplace_demo" },
+          "from": { "id": "fixture-author-lock", "first_name": "Private Lock Seller" },
+          "text": "Title: U-lock and cable set\nCategory: Transport\nPrice: $12\nDescription: Compact lock set for campus cycling. Two keys included.\nWhatsApp: +65 8000 1111"
         }
       }
     },
     {
       "type": "telegram_update",
       "at": "2026-08-29T06:46:00Z",
+      "media": { "imageUrl": "/images/listings/calculator.svg", "imageAlt": "Illustration of a graphing calculator" },
       "update": {
         "update_id": 1003,
         "message": {
           "message_id": 503,
           "date": 1787985900,
-          "from": { "id": "mock-univus-moderator-001" },
-          "marketplace_listing": {
-            "id": "calculator",
-            "title": "TI-84 Plus calculator",
-            "category": "Study",
-            "price": 75,
-            "description": "Fully working calculator with protective cover.",
-            "source_name": "NUS Marketplace",
-            "source_url": "https://example.com/seller/calculator",
-            "image_url": "/images/listings/calculator.svg",
-            "image_alt": "Illustration of a graphing calculator",
-            "fictional": true
-          }
+          "chat": { "username": "nus_marketplace_demo" },
+          "from": { "id": "mock-univus-moderator-001", "first_name": "Private Calculator Seller" },
+          "text": "[WTS]\nTI-84 Plus calculator\nS$75\nFully working calculator with protective cover.\nDM @private_calculator_seller"
         }
       }
     },
     {
       "type": "telegram_update",
       "at": "2026-08-29T08:21:00Z",
+      "media": { "imageUrl": "/images/listings/lamp.svg", "imageAlt": "Illustration of an adjustable study lamp" },
       "update": {
         "update_id": 1004,
         "message": {
           "message_id": 504,
           "date": 1787991600,
-          "from": { "id": "fixture-author-lamp" },
-          "marketplace_listing": {
-            "id": "lamp",
-            "title": "Adjustable study lamp",
-            "category": "Room & Living",
-            "price": 18,
-            "description": "Warm LED desk lamp for late-night study sessions.",
-            "source_name": "NUS Marketplace",
-            "source_url": "https://example.com/seller/lamp",
-            "image_url": "/images/listings/lamp.svg",
-            "image_alt": "Illustration of an adjustable study lamp",
-            "fictional": true
-          }
+          "chat": { "username": "nus_marketplace_demo" },
+          "from": { "id": "fixture-author-lamp", "first_name": "Private Lamp Seller", "username": "private_lamp_seller" },
+          "text": "Title: Adjustable study lamp\nPrice: $18\nDescription: Warm LED desk lamp for late-night study sessions.\nTelegram: https://t.me/private_lamp_seller"
         }
       }
     }

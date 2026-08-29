@@ -6,25 +6,16 @@
     {
       "type": "telegram_update",
       "at": "2026-08-29T09:00:00Z",
+      "media": { "imageUrl": "/images/listings/calculator.svg", "imageAlt": "Illustration of a graphing calculator" },
       "update": {
         "update_id": 3001,
         "edited_message": {
           "message_id": 503,
           "date": 1787985900,
           "edit_date": 1787985800,
-          "from": { "id": "mock-univus-moderator-001" },
-          "marketplace_listing": {
-            "id": "calculator",
-            "title": "Conflicting calculator title",
-            "category": "Study",
-            "price": 75,
-            "description": "This deliberately stale fixture must enter Moderator review.",
-            "source_name": "NUS Marketplace",
-            "source_url": "https://example.com/seller/calculator",
-            "image_url": "/images/listings/calculator.svg",
-            "image_alt": "Illustration of a graphing calculator",
-            "fictional": true
-          }
+          "chat": { "username": "nus_marketplace_demo" },
+          "from": { "id": "mock-univus-moderator-001", "first_name": "Private Calculator Seller" },
+          "text": "Title: Conflicting calculator title\nCategory: Study\nPrice: $75\nDescription: This deliberately stale fixture must enter Moderator review."
         }
       }
     }

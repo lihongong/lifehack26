@@ -64,11 +64,14 @@ Key privileged endpoints:
 ## Source Feed fixtures and gates
 
 Marketplace demonstration data is replayed through an allowlisted Telegram-style fixture without a live chat, token, or network request.
+Representative Telegram message text is parsed offline with deterministic labeled-field and controlled-keyword rules for Study, Room & Living, Transport, and Electronics.
+Raw author identity, contact lines, and source-message text are not persisted; contact-like text is removed before normalized Listings or safe discrepancy candidates are stored.
 Replay the deterministic baseline or another bundled scenario with:
 
 ```bash
 npm run replay:source-fixtures
 npm run replay:source-fixtures -- consent-lifecycle
+npm run replay:source-fixtures -- marketplace-unparseable
 ```
 
 Production starts with an empty Source Feed whose written-permission, privacy-review, and explicit live-enable gates are all disabled.
@@ -90,5 +93,8 @@ Moderator endpoints:
 
 Fixture replay is exposed through `/api/dev/source-feeds/replay` only outside production and accepts allowlisted fixture names rather than paths or arbitrary payloads.
 Public Marketplace responses omit private evidence, hashed identifiers, original Source Feed URLs, and unconsented attribution.
+They include `sourceTime`, `expiresAt`, and `attributionState`, while `updatedAt` remains a compatibility alias for `sourceTime`.
+Listings expire publicly 30 days after their latest applied source create or edit, and a later source edit resets expiry and reactivates the normalized Listing.
+Unparseable content becomes a Source Discrepancy that a Moderator may retain or correct and publish without overriding system identity, source time, provenance, expiry, or attribution.
 
 Run verification with `npm test`, `npm run build`, and `npm run test:e2e`. The end-to-end command builds the current frontend before starting Playwright.

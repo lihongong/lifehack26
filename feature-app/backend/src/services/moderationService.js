@@ -6,11 +6,11 @@ export function hiddenListingIds(database) {
   return new Set(database.prepare("SELECT listing_id FROM marketplace_moderation WHERE hidden = 1").all().map(({ listing_id }) => listing_id));
 }
 
-export function moderatorListings(database) {
+export function moderatorListings(database, now = new Date()) {
   const states = new Map(database.prepare("SELECT listing_id, hidden, reason, updated_at AS updatedAt FROM marketplace_moderation").all().map((row) => [row.listing_id, row]));
-  return findListings(database, {}, new Set(), { includeInternal: true }).map((listing) => {
+  return findListings(database, {}, new Set(), { includeInternal: true, includeExpired: true, now }).map((listing) => {
     const state = states.get(listing.id);
-    const { authorKeyHash: _authorKeyHash, ...visible } = listing;
+    const { authorKeyHash: _authorKeyHash, sourceUrl: _sourceUrl, expiryBasis: _expiryBasis, ...visible } = listing;
     return { ...visible, hidden: Boolean(state?.hidden), moderationReason: state?.reason || null, moderatedAt: state?.updatedAt || null };
   });
 }
@@ -18,7 +18,7 @@ export function moderatorListings(database) {
 export function moderateListing(database, actor, listingId, hidden, reasonInput, now, identitySecret) {
   if (typeof hidden !== "boolean") throw Object.assign(new Error("Hidden must be true or false."), { status: 422 });
   const reason = validateReason(reasonInput);
-  const listing = findListings(database, {}, new Set(), { includeInternal: true }).find(({ id }) => id === listingId);
+  const listing = findListings(database, {}, new Set(), { includeInternal: true, includeExpired: true, now }).find(({ id }) => id === listingId);
   if (!listing) throw Object.assign(new Error("Marketplace Listing not found."), { status: 404 });
   const current = database.prepare("SELECT hidden FROM marketplace_moderation WHERE listing_id = ?").get(listingId);
   if (Boolean(current?.hidden) === hidden) throw Object.assign(new Error(`Marketplace Listing is already ${hidden ? "hidden" : "visible"}.`), { status: 409 });
@@ -43,5 +43,5 @@ export function moderateListing(database, actor, listingId, hidden, reasonInput,
     database.exec("ROLLBACK");
     throw error;
   }
-  return moderatorListings(database).find(({ id }) => id === listingId);
+  return moderatorListings(database, now).find(({ id }) => id === listingId);
 }

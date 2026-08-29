@@ -5,9 +5,9 @@ export default defineConfig({
   workers: 1,
   use: { baseURL: "http://127.0.0.1:3000", trace: "retain-on-failure" },
   webServer: {
-    command: "npm run start --prefix ../backend",
+    command: "node ../backend/src/server.js",
     url: "http://127.0.0.1:3000",
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     env: { NODE_ENV: "test", DATABASE_PATH: ":memory:", PLATFORM_OPERATOR_SUBJECT: "mock-univus-bryan-001", BUFFET_DEMO_ANCHOR: "2026-08-30T04:00:00Z" },
   },
   projects: [

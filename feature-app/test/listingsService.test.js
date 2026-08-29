@@ -10,8 +10,11 @@ function withListings(run) {
   try { return run(database); } finally { database.close(); }
 }
 
-test("all replayed fixtures are fictional and include safe public provenance", () => withListings((database) =>
-  assert.ok(findListings(database).every((item) => item.fictional && item.source && item.updatedAt && item.imageUrl && item.imageAlt && !("sourceUrl" in item))),
+test("all replayed fixtures are fictional and include safe public provenance and expiry", () => withListings((database) =>
+  assert.ok(findListings(database).every((item) =>
+    item.fictional && item.source && item.sourceTime && item.updatedAt === item.sourceTime && item.expiresAt &&
+    item.attributionState === "withheld" && item.imageUrl && item.imageAlt && !("sourceUrl" in item) && !("expiryBasis" in item),
+  )),
 ));
 test("search is case-insensitive across listing fields", () => withListings((database) => {
   assert.equal(findListings(database, { query: "CALCULATOR" }).length, 1);

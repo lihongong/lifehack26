@@ -13,6 +13,7 @@ import {
 } from "../api/privilegeApi.js";
 
 const feedId = "telegram-marketplace-demo";
+const categories = ["Study", "Room & Living", "Transport", "Electronics"];
 const emptyConsent = { externalAuthorId: "", displayName: "", contactUrl: "", evidenceReference: "", reason: "", displayNameAllowed: true, contactAllowed: false };
 
 export default function ModerationPage() {
@@ -23,6 +24,7 @@ export default function ModerationPage() {
   const [consentForm, setConsentForm] = useState(emptyConsent);
   const [withdrawalReasons, setWithdrawalReasons] = useState({});
   const [resolutionReasons, setResolutionReasons] = useState({});
+  const [corrections, setCorrections] = useState({});
   const [reasons, setReasons] = useState({});
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -33,6 +35,20 @@ export default function ModerationPage() {
     setListings(listingData.listings);
     setDiscrepancies(discrepancyData.discrepancies);
     setConsents(consentData.consents);
+    setCorrections((current) => {
+      const next = { ...current };
+      for (const discrepancy of discrepancyData.discrepancies) {
+        if (discrepancy.type !== "unparseable_marketplace_message" || next[discrepancy.id]) continue;
+        const candidate = discrepancy.incoming?.candidate || {};
+        next[discrepancy.id] = {
+          title: candidate.title || "",
+          category: candidate.category || "",
+          price: candidate.price ?? "",
+          description: candidate.description || "",
+        };
+      }
+      return next;
+    });
   };
   useEffect(() => {
     if (participant?.role === "moderator") refresh().catch((caught) => setError(caught.message));
@@ -115,11 +131,18 @@ export default function ModerationPage() {
             <li key={discrepancy.id}>
               <div><strong>{discrepancy.listingId || "Removed source post"}</strong><span>{label(discrepancy.type)} · {discrepancy.feedName}</span></div>
               <div className="source-snapshot"><strong>Current</strong><br />{snapshot(discrepancy.current)}</div>
-              <div className="source-snapshot"><strong>Incoming</strong><br />{discrepancy.redacted ? "Content redacted after consent withdrawal." : snapshot(discrepancy.incoming?.listing)}</div>
+              <div className="source-snapshot"><strong>Incoming</strong><br />{discrepancy.redacted ? "Content redacted after consent withdrawal." : snapshot(discrepancy.incoming?.listing || discrepancy.incoming?.candidate)}</div>
+              {discrepancy.incoming?.parseIssues?.length > 0 && <p>Parser issues: {discrepancy.incoming.parseIssues.map(label).join(", ")}</p>}
+              {discrepancy.type === "unparseable_marketplace_message" && !discrepancy.redacted && <div className="correction-fields" aria-label="Correct and publish fields">
+                <label>Corrected title<input required maxLength="160" value={corrections[discrepancy.id]?.title || ""} onChange={(event) => updateCorrection(discrepancy.id, "title", event.target.value)} /></label>
+                <label>Corrected category<select required value={corrections[discrepancy.id]?.category || ""} onChange={(event) => updateCorrection(discrepancy.id, "category", event.target.value)}><option value="">Select category</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+                <label>Corrected whole SGD price<input required type="number" min="0" step="1" value={corrections[discrepancy.id]?.price ?? ""} onChange={(event) => updateCorrection(discrepancy.id, "price", event.target.value)} /></label>
+                <label>Corrected description<textarea required maxLength="2000" rows="4" value={corrections[discrepancy.id]?.description || ""} onChange={(event) => updateCorrection(discrepancy.id, "description", event.target.value)} /></label>
+              </div>}
               <label>Resolution reason<input required minLength="3" maxLength="500" value={resolutionReasons[discrepancy.id] || ""} onChange={(event) => setResolutionReasons({ ...resolutionReasons, [discrepancy.id]: event.target.value })} /></label>
               <div className="decision-row">
-                <button type="button" className="primary-action" disabled={discrepancy.redacted} onClick={() => decide(discrepancy.id, "apply_source")}>Apply source</button>
-                <button type="button" className="secondary-action" onClick={() => decide(discrepancy.id, "retain_current")}>Retain current</button>
+                <button type="button" className="primary-action" disabled={discrepancy.redacted} onClick={() => decide(discrepancy, "apply_source")}>{discrepancy.type === "unparseable_marketplace_message" ? "Correct and publish" : "Apply source"}</button>
+                <button type="button" className="secondary-action" onClick={() => decide(discrepancy, "retain_current")}>Retain current</button>
               </div>
             </li>
           ))}</ul> : <p>No open Source Discrepancies.</p>}
@@ -128,10 +151,20 @@ export default function ModerationPage() {
     </main>
   );
 
-  async function decide(id, decision) {
+  function updateCorrection(id, field, value) {
+    setCorrections((current) => ({ ...current, [id]: { ...current[id], [field]: value } }));
+  }
+
+  async function decide(discrepancy, decision) {
     setError(""); setStatus("");
     try {
-      await resolveSourceDiscrepancy(id, decision, resolutionReasons[id]);
+      const correction = decision === "apply_source" && discrepancy.type === "unparseable_marketplace_message"
+        ? {
+          ...corrections[discrepancy.id],
+          price: corrections[discrepancy.id]?.price === "" ? null : Number(corrections[discrepancy.id]?.price),
+        }
+        : undefined;
+      await resolveSourceDiscrepancy(discrepancy.id, decision, resolutionReasons[discrepancy.id], correction);
       setStatus(`Source Discrepancy ${decision === "apply_source" ? "applied" : "retained"}.`);
       await refresh();
     } catch (caught) { setError(caught.message); }

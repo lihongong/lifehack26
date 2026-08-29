@@ -41,16 +41,18 @@ test("Operator enrollment, self-directed moderation, reversal, audit access, and
   assert.equal((await api.get("/api/operator/audit").set("Cookie", moderatorCookie)).status, 403);
   const enrolled = await api.post("/api/operator/moderators").set("Cookie", operatorCookie).send({ email: moderatorIdentity.email, reason: "Trusted campus operations volunteer" });
   assert.equal(enrolled.status, 201);
-  assert.equal((await api.get("/api/moderation/marketplace").set("Cookie", moderatorCookie)).status, 200);
+  const moderationListings = await api.get("/api/moderation/marketplace").set("Cookie", moderatorCookie);
+  assert.equal(moderationListings.status, 200);
+  const calculatorId = moderationListings.body.listings.find(({ title }) => title === "TI-84 Plus calculator").id;
 
-  const hidden = await api.patch("/api/moderation/marketplace/calculator").set("Cookie", moderatorCookie).send({ hidden: true, reason: "Reviewing my own outdated source post" });
+  const hidden = await api.patch(`/api/moderation/marketplace/${calculatorId}`).set("Cookie", moderatorCookie).send({ hidden: true, reason: "Reviewing my own outdated source post" });
   assert.equal(hidden.status, 200);
   assert.equal(hidden.body.listing.hidden, true);
   const publicListings = await api.get("/api/listings");
-  assert.equal(publicListings.body.listings.some(({ id }) => id === "calculator"), false);
+  assert.equal(publicListings.body.listings.some(({ id }) => id === calculatorId), false);
   assert.equal(JSON.stringify(publicListings.body).includes("ownerSubject"), false);
 
-  const restored = await api.patch("/api/moderation/marketplace/calculator").set("Cookie", moderatorCookie).send({ hidden: false, reason: "Review complete and listing is current" });
+  const restored = await api.patch(`/api/moderation/marketplace/${calculatorId}`).set("Cookie", moderatorCookie).send({ hidden: false, reason: "Review complete and listing is current" });
   assert.equal(restored.status, 200);
   const audit = await api.get("/api/operator/audit").set("Cookie", operatorCookie);
   assert.equal(audit.status, 200);

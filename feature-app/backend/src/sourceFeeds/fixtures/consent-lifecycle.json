@@ -24,19 +24,9 @@
         "message": {
           "message_id": 601,
           "date": 1787994060,
-          "from": { "id": "fixture-consenting-author" },
-          "marketplace_listing": {
-            "id": "fixture-notebook",
-            "title": "Fictional ruled notebook",
-            "category": "Study",
-            "price": 4,
-            "description": "Unused ruled notebook from a fictional fixture.",
-            "source_name": "NUS Marketplace",
-            "source_url": "https://example.com/fixture/notebook",
-            "image_url": "/images/listings/calculator.svg",
-            "image_alt": "Fixture illustration used for a notebook",
-            "fictional": true
-          }
+          "chat": { "username": "nus_marketplace_demo" },
+          "from": { "id": "fixture-consenting-author", "first_name": "Fixture Author", "username": "fixture_author_unavailable" },
+          "text": "Title: Fictional ruled notebook\nCategory: Study\nPrice: $4\nDescription: Unused ruled notebook from a fictional fixture.\nContact: https://t.me/fixture_author_unavailable"
         }
       }
     },

@@ -13,7 +13,7 @@ import {
 export function moderationRoutes({ database, clock, sourceIdentitySecret }) {
   const router = Router();
   router.use(requireParticipant, requireRole("moderator"));
-  router.get("/marketplace", (_request, response) => response.json({ listings: moderatorListings(database) }));
+  router.get("/marketplace", (_request, response) => response.json({ listings: moderatorListings(database, clock.now()) }));
   router.patch("/marketplace/:listingId", (request, response) => {
     const listing = moderateListing(database, request.participant, request.params.listingId, request.body?.hidden, request.body?.reason, clock.now(), sourceIdentitySecret);
     response.json({ listing });
@@ -29,6 +29,7 @@ export function moderationRoutes({ database, clock, sourceIdentitySecret }) {
       request.body?.decision,
       request.body?.reason,
       clock.now(),
+      request.body?.correctedListing,
     );
     response.json({ discrepancy });
   });

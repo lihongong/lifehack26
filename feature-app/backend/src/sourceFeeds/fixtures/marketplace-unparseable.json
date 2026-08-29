@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "name": "marketplace-unparseable",
+  "feedId": "telegram-marketplace-demo",
+  "steps": [
+    {
+      "type": "telegram_update",
+      "at": "2026-08-29T09:30:00Z",
+      "update": {
+        "update_id": 4001,
+        "message": {
+          "message_id": 701,
+          "date": 1787995740,
+          "chat": { "username": "nus_marketplace_demo" },
+          "from": { "id": "fixture-ambiguous-author", "first_name": "Private Ambiguous Seller", "username": "private_ambiguous_seller" },
+          "text": "WTS: Bicycle phone holder\nPrice: $15\nFits a bike handlebar and most phones.\nContact: @private_ambiguous_seller"
+        }
+      }
+    }
+  ]
+}

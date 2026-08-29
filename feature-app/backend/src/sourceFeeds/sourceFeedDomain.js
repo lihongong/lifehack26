@@ -1,6 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
-
-const categories = new Set(["Study", "Room & Living", "Transport", "Electronics"]);
+import { parseMarketplaceMessage, validateCorrectedMarketplaceFields } from "./marketplaceMessageParser.js";
 
 function invalid(message) {
   throw Object.assign(new Error(message), { status: 422 });
@@ -32,24 +31,15 @@ function telegramDate(value, field) {
   return new Date(value * 1000);
 }
 
-function normalizeListing(input) {
-  if (!input || typeof input !== "object" || Array.isArray(input)) invalid("Marketplace Listing content is required.");
-  const id = requiredString(input.id, "Marketplace Listing id", 80);
-  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) invalid("Marketplace Listing id must use lowercase letters, numbers, and hyphens.");
-  const category = requiredString(input.category, "Category", 80);
-  if (!categories.has(category)) invalid("Category is not supported.");
-  if (!Number.isInteger(input.price) || input.price < 0) invalid("Price must be a non-negative integer.");
+function listingFromCandidate(candidate, defaults) {
   return {
-    id,
-    title: requiredString(input.title, "Title", 160),
-    category,
-    price: input.price,
-    description: requiredString(input.description, "Description", 2000),
-    sourceName: requiredString(input.source_name, "Source name", 120),
-    sourceUrl: optionalHttpsUrl(input.source_url, "Source URL"),
-    imageUrl: imageLocation(input.image_url),
-    imageAlt: requiredString(input.image_alt, "Image alternative text", 300),
-    fictional: input.fictional === true,
+    id: defaults.id,
+    ...candidate,
+    sourceName: defaults.sourceName,
+    sourceUrl: defaults.sourceUrl,
+    imageUrl: defaults.imageUrl || null,
+    imageAlt: defaults.imageAlt || null,
+    fictional: Boolean(defaults.fictional),
   };
 }
 
@@ -75,7 +65,11 @@ export function hashSourceAuthor(feedId, externalAuthorId, secret) {
   return createHmac("sha256", secret).update(`${feedId}:${author}`).digest("hex");
 }
 
-export function normalizeTelegramUpdate(rawUpdate) {
+export function normalizeCorrectedMarketplaceListing(input, defaults) {
+  return listingFromCandidate(validateCorrectedMarketplaceFields(input), defaults);
+}
+
+export function normalizeTelegramUpdate(rawUpdate, { feedId = "telegram-marketplace-demo", fictional = false, media = null } = {}) {
   if (!rawUpdate || typeof rawUpdate !== "object" || Array.isArray(rawUpdate)) invalid("Telegram update must be an object.");
   if (!Number.isInteger(rawUpdate.update_id) || rawUpdate.update_id < 0) invalid("Telegram update_id must be a non-negative integer.");
 
@@ -88,9 +82,19 @@ export function normalizeTelegramUpdate(rawUpdate) {
 
   const eventType = sourceType === "message" ? "create" : sourceType === "edited_message" ? "edit" : "delete";
   const sourceEventAt = telegramDate(eventType === "edit" ? message.edit_date : message.date, eventType === "edit" ? "edit_date" : "date");
-  const externalAuthorId = message.from?.id;
+  const externalAuthorId = message.from?.id ?? message.sender_chat?.id;
   if (externalAuthorId == null) invalid("Telegram message author id is required.");
-  const listing = eventType === "delete" ? null : normalizeListing(message.marketplace_listing);
+  const chatUsername = requiredString(message.chat?.username, "Telegram chat username", 200);
+  const defaults = {
+    id: stableId("listing", feedId, message.message_id),
+    sourceName: "NUS Marketplace",
+    sourceUrl: optionalHttpsUrl(`https://t.me/${chatUsername}/${message.message_id}`, "Source URL"),
+    imageUrl: media?.imageUrl ? imageLocation(media.imageUrl) : null,
+    imageAlt: media?.imageAlt ? requiredString(media.imageAlt, "Image alternative text", 300) : null,
+    fictional,
+  };
+  const parsed = eventType === "delete" ? { issues: [], candidate: null } : parseMarketplaceMessage(message.text ?? message.caption);
+  const listing = parsed.issues.length ? null : listingFromCandidate(parsed.candidate, defaults);
   const event = {
     updateId: rawUpdate.update_id,
     eventType,
@@ -98,6 +102,9 @@ export function normalizeTelegramUpdate(rawUpdate) {
     externalAuthorId: String(externalAuthorId),
     sourceEventAt,
     listing,
+    parseIssues: parsed.issues,
+    parseCandidate: parsed.candidate,
+    listingDefaults: defaults,
   };
   return { ...event, payloadDigest: digest({ ...event, sourceEventAt: sourceEventAt.toISOString() }) };
 }
@@ -109,5 +116,8 @@ export function sourceEventForStorage(event, authorKeyHash) {
     authorKeyHash,
     revisionAt: event.sourceEventAt.toISOString(),
     listing: event.listing,
+    parseIssues: event.parseIssues,
+    parseCandidate: event.parseCandidate,
+    listingDefaults: event.listingDefaults,
   };
 }
