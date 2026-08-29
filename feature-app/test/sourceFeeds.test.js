@@ -16,7 +16,7 @@ import {
   withdrawSourceAuthorConsent,
 } from "../backend/src/services/sourceFeedService.js";
 import { normalizeTelegramUpdate } from "../backend/src/sourceFeeds/sourceFeedDomain.js";
-import { replaySourceFixture, sourceFixtureSnapshot } from "../backend/src/sourceFeeds/telegramFixtureAdapter.js";
+import { replaySourceFixture, seedDemoMarketplaceConsents, sourceFixtureSnapshot } from "../backend/src/sourceFeeds/telegramFixtureAdapter.js";
 
 const feedId = "telegram-marketplace-demo";
 const secret = "source-feed-test-secret";
@@ -68,6 +68,27 @@ test("the allowlisted Telegram fixture replays deterministically and idempotentl
   assert.ok(second.outcomes.every(({ status }) => status === "duplicate"));
   assert.deepEqual(sourceFixtureSnapshot(database), firstSnapshot);
   assert.equal(firstSnapshot.processedUpdates, 4);
+  database.close();
+});
+
+test("development Marketplace fixtures include two idempotent fictional author consents", () => {
+  const database = createDatabase(":memory:");
+  replaySourceFixture(database, "marketplace-baseline", { identitySecret: secret });
+  seedDemoMarketplaceConsents(database, secret);
+  seedDemoMarketplaceConsents(database, secret);
+  const listings = findListings(database, {}, new Set(), { now: baseTime });
+  const monitor = listings.find(({ title }) => title === "24-inch USB-C monitor");
+  const bikeLock = listings.find(({ title }) => title === "U-lock and cable set");
+  assert.deepEqual(
+    [monitor, bikeLock].map(({ authorDisplayName, contactUrl, attributionState }) => ({ authorDisplayName, contactUrl, attributionState })),
+    [
+      { authorDisplayName: "Demo Monitor Seller", contactUrl: "https://t.me/nus_demo_monitor_unavailable", attributionState: "name_and_contact" },
+      { authorDisplayName: "Demo Bike-Lock Seller", contactUrl: "https://t.me/nus_demo_bikelock_unavailable", attributionState: "name_and_contact" },
+    ],
+  );
+  assert.equal(listings.find(({ title }) => title === "TI-84 Plus calculator").attributionState, "withheld");
+  assert.equal(listings.find(({ title }) => title === "Adjustable study lamp").attributionState, "withheld");
+  assert.equal(database.prepare("SELECT COUNT(*) AS count FROM source_author_consents").get().count, 2);
   database.close();
 });
 

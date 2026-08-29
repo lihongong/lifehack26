@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { activatePolicyVersion } from "../services/policyService.js";
-import { replaySourceFixture, sourceFixtureSnapshot } from "../sourceFeeds/telegramFixtureAdapter.js";
+import { replaySourceFixture, seedDemoMarketplaceConsents, sourceFixtureSnapshot } from "../sourceFeeds/telegramFixtureAdapter.js";
 import { seedLostItemFixtures } from "../services/lostItemFixture.js";
 import { seedCustodyLocation } from "../services/foundItemService.js";
 import { ingestBuffetPosts } from "../services/buffetAlertService.js";
@@ -146,6 +146,7 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
     `);
     clock.set(null);
     replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
+    seedDemoMarketplaceConsents(database, sourceIdentitySecret);
     seedLostItemFixtures(database, lostItemCipher);
     seedCustodyLocation(database);
     ingestBuffetPosts(database, buffetPosts, clock.now());
