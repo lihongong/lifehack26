@@ -14,8 +14,13 @@ export function devRoutes({ database, clock, environment }) {
       BEGIN IMMEDIATE;
       DROP TRIGGER policy_acceptances_no_update;
       DROP TRIGGER policy_acceptances_no_delete;
+      DROP TRIGGER audit_log_no_update;
+      DROP TRIGGER audit_log_no_delete;
       DROP TRIGGER gem_ledger_no_update;
       DROP TRIGGER gem_ledger_no_delete;
+      DELETE FROM audit_log;
+      DELETE FROM marketplace_moderation;
+      DELETE FROM privileged_roles;
       DELETE FROM policy_acceptances;
       DELETE FROM sessions;
       DELETE FROM launch_assertions;
@@ -25,6 +30,8 @@ export function devRoutes({ database, clock, environment }) {
         activated_at = '2026-08-29T00:00:00Z';
       CREATE TRIGGER policy_acceptances_no_update BEFORE UPDATE ON policy_acceptances BEGIN SELECT RAISE(ABORT, 'policy acceptances are immutable'); END;
       CREATE TRIGGER policy_acceptances_no_delete BEFORE DELETE ON policy_acceptances BEGIN SELECT RAISE(ABORT, 'policy acceptances are immutable'); END;
+      CREATE TRIGGER audit_log_no_update BEFORE UPDATE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit_log is immutable'); END;
+      CREATE TRIGGER audit_log_no_delete BEFORE DELETE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit_log is immutable'); END;
       CREATE TRIGGER gem_ledger_no_update BEFORE UPDATE ON gem_ledger BEGIN SELECT RAISE(ABORT, 'gem_ledger is immutable'); END;
       CREATE TRIGGER gem_ledger_no_delete BEFORE DELETE ON gem_ledger BEGIN SELECT RAISE(ABORT, 'gem_ledger is immutable'); END;
       COMMIT;
