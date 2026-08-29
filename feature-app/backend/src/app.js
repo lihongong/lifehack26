@@ -16,6 +16,7 @@ import { lostItemRoutes } from "./routes/lostItemRoutes.js";
 import { foundItemRoutes } from "./routes/foundItemRoutes.js";
 import { buffetRoutes } from "./routes/buffetRoutes.js";
 import { buffetAlertRoutes } from "./routes/buffetAlertRoutes.js";
+import { manualBuffetRoutes } from "./routes/manualBuffetRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { participantMiddleware } from "./middleware/requireParticipant.js";
 import { createDatabase } from "./db/database.js";
@@ -62,6 +63,7 @@ export function createApp({
   app.use("/api/protected-actions", protectedActionRoutes({ database }));
   app.use("/api/operator", privilegeRoutes({ database, clock }));
   app.use("/api/moderation", moderationRoutes({ database, clock, sourceIdentitySecret, lostItemCipher }));
+  app.use("/api/moderation", manualBuffetRoutes({ database, clock }));
   app.use("/api", commentRoutes({ database, clock }));
   app.use("/api", reportRoutes({ database, clock }));
   app.use("/api", lostItemRoutes({ database, clock, lostItemCipher }));

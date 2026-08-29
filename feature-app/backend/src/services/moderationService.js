@@ -102,6 +102,13 @@ export function moderatorComments(database, now = new Date()) {
   `).all().map((post) => [post.id, `${post.category} lost on ${post.lostDate}`]));
   const foundReportLabels = new Map(database.prepare("SELECT id, category, found_date AS foundDate FROM found_item_reports").all().map((post) => [post.id, `${post.category} found on ${post.foundDate}`]));
   const foundItemLabels = new Map(database.prepare("SELECT id, category, found_date AS foundDate FROM found_items").all().map((item) => [item.id, `${item.category} received from ${item.foundDate}`]));
+  const buffetLabels = new Map(database.prepare(`
+    SELECT ref.public_id AS publicId,
+      CASE WHEN ref.origin = 'manual' THEN manual.title ELSE source.title END AS title
+    FROM buffet_post_refs ref
+    LEFT JOIN manual_buffet_posts manual ON manual.id = ref.id
+    LEFT JOIN buffet_posts source ON source.id = ref.id
+  `).all().map(({ publicId, title }) => [publicId, title]));
   return database.prepare(`
     SELECT c.id, c.post_type AS postType, c.post_id AS postId, c.body, c.created_at AS createdAt,
       p.public_id AS authorPublicId, p.display_name AS authorDisplayName,
@@ -120,6 +127,8 @@ export function moderatorComments(database, now = new Date()) {
         ? foundReportLabels.get(comment.postId) || "Unknown Found-Item Report"
         : comment.postType === "found_item"
           ? foundItemLabels.get(comment.postId) || "Unknown Found Item"
+          : comment.postType === "buffet_post"
+            ? buffetLabels.get(comment.postId) || "Unknown Buffet Post"
           : listingTitles.get(comment.postId) || "Unknown Marketplace Listing",
   }));
 }

@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { withImmediateTransaction } from "../db/database.js";
 import { adjacentZoneIds, nusZones, publicZones } from "../data/nusZones.js";
-import { buffetPostExpiry } from "./buffetService.js";
+import { buffetPostExpiry, getPublicBuffetPost } from "./buffetService.js";
 import { getPolicyStatus } from "./policyService.js";
 import { recordAudit, validateReason } from "./privilegeService.js";
 
 export const DEMO_BUFFET_FEED_ID = "demo-buffet-v1";
+export const MANUAL_BUFFET_FEED_ID = "sharenus-manual-v1";
 const canonicalZoneIds = new Set(nusZones.map(({ id }) => id));
 const legacyProfileZones = new Map([
   ["Kent Ridge", "medicine-kent-ridge"],
@@ -17,6 +18,7 @@ const internalPostId = (feedId, sourcePostId) => `${feedId}:${sourcePostId}`;
 function persistedPost(row) {
   return {
     internalId: row.id,
+    referenceId: row.public_id,
     id: row.source_post_id,
     sourceFeedId: row.source_feed_id,
     title: row.title,
@@ -31,7 +33,11 @@ function persistedPost(row) {
 }
 
 export function listPersistedBuffetPosts(database, feedId = DEMO_BUFFET_FEED_ID) {
-  return database.prepare("SELECT * FROM buffet_posts WHERE source_feed_id = ? ORDER BY source_time DESC, source_post_id").all(feedId).map(persistedPost);
+  return database.prepare(`
+    SELECT bp.*, ref.public_id FROM buffet_posts bp
+    JOIN buffet_post_refs ref ON ref.id = bp.id
+    WHERE bp.source_feed_id = ? ORDER BY bp.source_time DESC, bp.source_post_id
+  `).all(feedId).map(persistedPost);
 }
 
 export function buffetPostStates(database, feedId = DEMO_BUFFET_FEED_ID) {
@@ -42,7 +48,18 @@ export function buffetPostStates(database, feedId = DEMO_BUFFET_FEED_ID) {
   `).all(feedId).map(({ sourcePostId, state }) => [sourcePostId, state || "active"]));
 }
 
+export function allBuffetPostStates(database) {
+  return new Map(database.prepare(`
+    SELECT ref.public_id AS referenceId, bps.state
+    FROM buffet_post_refs ref
+    LEFT JOIN buffet_post_states bps ON bps.buffet_post_id = ref.id
+  `).all().map(({ referenceId, state }) => [referenceId, state || "active"]));
+}
+
 export function ingestBuffetPosts(database, posts, now, feedId = DEMO_BUFFET_FEED_ID) {
+  if (feedId === MANUAL_BUFFET_FEED_ID) {
+    throw Object.assign(new Error("The manual Buffet namespace is not a Source Feed."), { status: 422 });
+  }
   withImmediateTransaction(database, () => {
     const upsert = database.prepare(`
       INSERT INTO buffet_posts (
@@ -115,18 +132,18 @@ function activePosts(database, feedId, now) {
   return database.prepare(`
     SELECT bp.* FROM buffet_posts bp
     JOIN buffet_post_states state ON state.buffet_post_id = bp.id
-    WHERE bp.source_feed_id = ? AND state.state = 'active'
-  `).all(feedId).map(persistedPost).filter((post) => new Date(buffetPostExpiry(post)) > now);
+    WHERE state.state = 'active' ${feedId ? "AND bp.source_feed_id = ?" : ""}
+  `).all(...(feedId ? [feedId] : [])).map(persistedPost).filter((post) => new Date(buffetPostExpiry(post)) > now);
 }
 
-export function deliverEligibleAlerts(database, now, feedId = DEMO_BUFFET_FEED_ID, participantId = null) {
+export function deliverEligibleAlerts(database, now, feedId = null, participantId = null, { withinTransaction = false } = {}) {
   const participants = database.prepare(`
     SELECT id, nus_zone FROM participants
     WHERE buffet_alerts_enabled = 1 AND nus_zone IS NOT NULL ${participantId ? "AND id = ?" : ""}
   `).all(...(participantId ? [participantId] : []));
   const posts = activePosts(database, feedId, now);
   let delivered = 0;
-  withImmediateTransaction(database, () => {
+  const deliver = () => {
     const insertAlert = database.prepare(`
       INSERT INTO buffet_alerts (id, participant_id, buffet_post_id, notification_id, match_type, created_at)
       VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(participant_id, buffet_post_id) DO NOTHING
@@ -150,7 +167,9 @@ export function deliverEligibleAlerts(database, now, feedId = DEMO_BUFFET_FEED_I
         delivered += 1;
       }
     }
-  });
+  };
+  if (withinTransaction) deliver();
+  else withImmediateTransaction(database, deliver);
   return { delivered };
 }
 
@@ -169,17 +188,21 @@ export function listParticipantAlerts(database, participantId) {
 
 export function recordAlertFeedback(database, participantId, alertId, outcome, now) {
   if (!new Set(["helpful", "food_gone"]).has(outcome)) throw Object.assign(new Error("Invalid Helpful Alert outcome."), { status: 422 });
-  const alert = database.prepare(`
-    SELECT ba.id, ba.buffet_post_id, bp.* FROM buffet_alerts ba
-    JOIN buffet_posts bp ON bp.id = ba.buffet_post_id
-    WHERE ba.id = ? AND ba.participant_id = ?
-  `).get(alertId, participantId);
-  if (!alert) throw Object.assign(new Error("Buffet Alert not found."), { status: 404 });
-  if (database.prepare("SELECT 1 FROM helpful_alert_outcomes WHERE alert_id = ?").get(alertId)) {
-    throw Object.assign(new Error("Helpful Alert outcome is already recorded."), { status: 409 });
-  }
-  let reviewId = null;
-  withImmediateTransaction(database, () => {
+  return withImmediateTransaction(database, () => {
+    const alert = database.prepare(`
+      SELECT ba.id, ba.buffet_post_id, bp.* FROM buffet_alerts ba
+      JOIN buffet_posts bp ON bp.id = ba.buffet_post_id
+      WHERE ba.id = ? AND ba.participant_id = ?
+    `).get(alertId, participantId);
+    if (!alert) throw Object.assign(new Error("Buffet Alert not found."), { status: 404 });
+    if (database.prepare("SELECT 1 FROM helpful_alert_outcomes WHERE alert_id = ?").get(alertId)) {
+      throw Object.assign(new Error("Helpful Alert outcome is already recorded."), { status: 409 });
+    }
+    const publicId = database.prepare("SELECT public_id FROM buffet_post_refs WHERE id = ?").get(alert.buffet_post_id)?.public_id;
+    if (!publicId || !getPublicBuffetPost(database, publicId, now)) {
+      throw Object.assign(new Error("Buffet Post is no longer available for feedback."), { status: 409 });
+    }
+    let reviewId = null;
     if (outcome === "food_gone") {
       const open = database.prepare("SELECT id FROM buffet_food_gone_reviews WHERE buffet_post_id = ? AND status = 'open'").get(alert.buffet_post_id);
       reviewId = open?.id || randomUUID();
@@ -198,8 +221,8 @@ export function recordAlertFeedback(database, participantId, alertId, outcome, n
     }
     database.prepare("INSERT INTO helpful_alert_outcomes (alert_id, outcome, review_id, created_at) VALUES (?, ?, ?, ?)")
       .run(alertId, outcome, reviewId, now.toISOString());
+    return { alertId, outcome };
   });
-  return { alertId, outcome };
 }
 
 export function listOpenBuffetReviews(database) {

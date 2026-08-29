@@ -65,7 +65,9 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
       DELETE FROM content_reports;
       DELETE FROM notifications;
       DELETE FROM buffet_post_states;
+      DELETE FROM manual_buffet_posts;
       DELETE FROM buffet_posts;
+      DELETE FROM buffet_post_refs;
       DELETE FROM comment_moderation;
       DELETE FROM comments;
       DELETE FROM audit_log;

@@ -15,6 +15,7 @@ import {
   deliverEligibleAlerts,
   getAlertSettings,
   ingestBuffetPosts,
+  MANUAL_BUFFET_FEED_ID,
   listOpenBuffetReviews,
   listParticipantAlerts,
   recordAlertFeedback,
@@ -25,6 +26,13 @@ import { updateParticipantProfile } from "../backend/src/services/participantSer
 
 const anchor = new Date("2026-08-30T04:00:00Z");
 const posts = createDemoBuffetPosts(anchor);
+
+test("Source Feed ingestion rejects the reserved manual Buffet namespace", () => {
+  const database = createDatabase(":memory:");
+  assert.throws(() => ingestBuffetPosts(database, posts, anchor, MANUAL_BUFFET_FEED_ID), /not a Source Feed/);
+  assert.equal(database.prepare("SELECT COUNT(*) AS count FROM buffet_posts WHERE source_feed_id = ?").get(MANUAL_BUFFET_FEED_ID).count, 0);
+  database.close();
+});
 
 function participant(database, suffix, name = `Participant ${suffix}`) {
   const launched = completeLaunch(database, createLaunchAssertion(database, {

@@ -5,7 +5,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { createComment, deleteComment, editComment, getComments } from "../api/commentApi.js";
 import ReportControl from "./ReportControl.jsx";
 
-export default function CommentThread({ listing, post: providedPost, postType = "marketplace_listing", label }) {
+export default function CommentThread({ listing, post: providedPost, postType = "marketplace_listing", label, returnTo = "/" }) {
   const post = providedPost || listing;
   const postLabel = label || post.title || `${post.category} Lost-Item Post`;
   const { participant } = useAuth();
@@ -50,7 +50,7 @@ export default function CommentThread({ listing, post: providedPost, postType = 
       await refresh();
     } catch (caught) {
       if (caught.status === 428) {
-        navigate(`/policies?action=comments&returnTo=${encodeURIComponent("/")}`);
+        navigate(`/policies?action=comments&returnTo=${encodeURIComponent(returnTo)}`);
       } else if (caught.body?.code === "CONTACT_DETAILS_CONFIRMATION_REQUIRED") {
         setConfirmation({ operation, afterSuccess, types: caught.body.detectedContactTypes });
       } else {
