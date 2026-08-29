@@ -10,7 +10,7 @@ export default function ExchangePage() {
     <main className="app-shell">
       <AppHeader />
       <section className="welcome">
-        <p className="eyebrow">NUS COMMUNITY EXCHANGE</p>
+        <p className="eyebrow">SHARENUS</p>
         <h1>
           Find it. Share it.
           <br />

@@ -1,6 +1,6 @@
-# NUS Community Exchange
+# ShareNUS
 
-The NUS Community Exchange aggregates time-sensitive community posts and rewards participation across marketplace, buffet, and lost-property experiences.
+ShareNUS aggregates time-sensitive community posts and rewards participation across marketplace, buffet, and lost-property experiences.
 
 ## Current implementation architecture
 

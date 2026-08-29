@@ -6,7 +6,7 @@ export default function AppHeader() {
   const { participant } = useAuth();
   return (
     <header className="app-header">
-      <Link className="brand" to="/" aria-label="NUS Exchange home">
+      <Link className="brand" to="/" aria-label="ShareNUS home">
         <span>u</span>Niv<span>U</span>S
       </Link>
       <nav className="header-actions" aria-label="Account and privileged tools">
