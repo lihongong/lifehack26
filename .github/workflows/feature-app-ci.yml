@@ -1,0 +1,53 @@
+name: Feature App CI
+
+on:
+  pull_request:
+    paths:
+      - "feature-app/**"
+      - ".github/workflows/feature-app-ci.yml"
+  push:
+    paths:
+      - "feature-app/**"
+      - ".github/workflows/feature-app-ci.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: feature-app
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: |
+            feature-app/package-lock.json
+            feature-app/backend/package-lock.json
+            feature-app/frontend/package-lock.json
+            feature-app/e2e/package-lock.json
+
+      - name: Install root deps
+        run: npm ci
+
+      - name: Install workspace deps
+        run: npm run install:all
+
+      - name: Install Playwright browser
+        run: npm exec --prefix e2e -- playwright install --with-deps chromium webkit
+
+      - name: Run backend tests
+        run: npm run test
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run end-to-end tests
+        run: npm run test:e2e

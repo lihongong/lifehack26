@@ -1,0 +1,6 @@
+reviews:
+  profile: chill
+  auto_review:
+    enabled: true
+  path_filters:
+    - "feature-app/**"
