@@ -2,25 +2,49 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { getContentReports, getModerationComments, getModerationListings, moderateComment, moderateListing, resolveContentReport } from "../api/privilegeApi.js";
+import {
+  getContentReports,
+  getModerationComments,
+  getModerationListings,
+  getSourceAuthorConsents,
+  getSourceDiscrepancies,
+  moderateComment,
+  moderateListing,
+  recordSourceAuthorConsent,
+  resolveContentReport,
+  resolveSourceDiscrepancy,
+  withdrawSourceAuthorConsent,
+} from "../api/privilegeApi.js";
+
+const feedId = "telegram-marketplace-demo";
+const emptyConsent = { externalAuthorId: "", displayName: "", contactUrl: "", evidenceReference: "", reason: "", displayNameAllowed: true, contactAllowed: false };
 
 export default function ModerationPage() {
   const { participant, loading } = useAuth();
   const [listings, setListings] = useState([]);
   const [reports, setReports] = useState([]);
   const [comments, setComments] = useState([]);
+  const [discrepancies, setDiscrepancies] = useState([]);
+  const [consents, setConsents] = useState([]);
+  const [consentForm, setConsentForm] = useState(emptyConsent);
+  const [withdrawalReasons, setWithdrawalReasons] = useState({});
+  const [resolutionReasons, setResolutionReasons] = useState({});
   const [reasons, setReasons] = useState({});
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const refresh = async () => {
-    const [listingData, reportData, commentData] = await Promise.all([
+    const [listingData, reportData, commentData, discrepancyData, consentData] = await Promise.all([
       getModerationListings(),
       getContentReports(),
       getModerationComments(),
+      getSourceDiscrepancies(),
+      getSourceAuthorConsents(feedId),
     ]);
     setListings(listingData.listings);
     setReports(reportData.reports);
     setComments(commentData.comments);
+    setDiscrepancies(discrepancyData.discrepancies);
+    setConsents(consentData.consents);
   };
   useEffect(() => {
     if (participant?.role === "moderator") refresh().catch((caught) => setError(caught.message));
@@ -33,8 +57,8 @@ export default function ModerationPage() {
       <AppHeader />
       <section className="privileged-page">
         <p className="eyebrow">MODERATOR</p>
-        <h1>Marketplace moderation</h1>
-        <p>Hide or restore a Marketplace Listing with a reason. Every action is immutable in the Operator audit trail.</p>
+        <h1>Content and Source Feed moderation</h1>
+        <p>Review Content Reports and Source Discrepancies, manage author consent, and directly moderate public Comments and Marketplace Listings. Every sensitive decision is recorded.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {status && <p className="action-status" role="status">{status}</p>}
         <section aria-labelledby="content-reports-title">
@@ -89,7 +113,7 @@ export default function ModerationPage() {
             <div><span className="category">{listing.category}</span><strong>{listing.title}</strong><span>{listing.hidden ? "Hidden" : "Publicly visible"}</span></div>
             {listing.moderationReason && <p>Last reason: {listing.moderationReason}</p>}
             <label>Reason<input required minLength="3" maxLength="500" value={reasons[listing.id] || ""} onChange={(event) => setReasons({ ...reasons, [listing.id]: event.target.value })} /></label>
-            <button className={listing.hidden ? "primary-action" : "danger-action"} onClick={async () => {
+            <button type="button" className={listing.hidden ? "primary-action" : "danger-action"} onClick={async () => {
               setError(""); setStatus("");
               try {
                 await moderateListing(listing.id, !listing.hidden, reasons[listing.id]);
@@ -100,6 +124,64 @@ export default function ModerationPage() {
             }}>{listing.hidden ? "Restore listing" : "Hide listing"}</button>
           </li>
         ))}</ul>
+
+        <form className="privileged-form" onSubmit={async (event) => {
+          event.preventDefault(); setError(""); setStatus("");
+          try {
+            const scopes = [consentForm.displayNameAllowed && "display_name", consentForm.contactAllowed && "contact"].filter(Boolean);
+            await recordSourceAuthorConsent(feedId, { ...consentForm, scopes });
+            setConsentForm(emptyConsent);
+            setStatus("Source author consent recorded.");
+            await refresh();
+          } catch (caught) { setError(caught.message); }
+        }}>
+          <h2>Record source author consent</h2>
+          <label>Private source author id<input required value={consentForm.externalAuthorId} onChange={(event) => setConsentForm({ ...consentForm, externalAuthorId: event.target.value })} /></label>
+          <label className="gate-toggle"><input type="checkbox" checked={consentForm.displayNameAllowed} onChange={(event) => setConsentForm({ ...consentForm, displayNameAllowed: event.target.checked })} />Allow public display name</label>
+          <label>Consented display name<input disabled={!consentForm.displayNameAllowed} value={consentForm.displayName} onChange={(event) => setConsentForm({ ...consentForm, displayName: event.target.value })} /></label>
+          <label className="gate-toggle"><input type="checkbox" checked={consentForm.contactAllowed} onChange={(event) => setConsentForm({ ...consentForm, contactAllowed: event.target.checked })} />Allow public contact link</label>
+          <label>Consented HTTPS contact URL<input type="url" disabled={!consentForm.contactAllowed} value={consentForm.contactUrl} onChange={(event) => setConsentForm({ ...consentForm, contactUrl: event.target.value })} /></label>
+          <label>Private evidence reference<input required value={consentForm.evidenceReference} onChange={(event) => setConsentForm({ ...consentForm, evidenceReference: event.target.value })} /></label>
+          <label>Consent reason<input required minLength="3" maxLength="500" value={consentForm.reason} onChange={(event) => setConsentForm({ ...consentForm, reason: event.target.value })} /></label>
+          <button className="primary-action">Record consent</button>
+        </form>
+
+        <section aria-labelledby="consents-title">
+          <h2 id="consents-title">Recorded author consent</h2>
+          {consents.length ? <ul className="management-list">{consents.map((consent) => (
+            <li key={consent.id}>
+              <div><strong>{consent.displayName || "Identity not consented"}</strong><span>{consent.active ? "Active" : "Withdrawn"} · Evidence: {consent.evidenceReference || "scrubbed"}</span></div>
+              {consent.contactUrl && <span>{consent.contactUrl}</span>}
+              {consent.active && <>
+                <label>Withdrawal reason<input required minLength="3" maxLength="500" value={withdrawalReasons[consent.id] || ""} onChange={(event) => setWithdrawalReasons({ ...withdrawalReasons, [consent.id]: event.target.value })} /></label>
+                <button type="button" className="danger-action" onClick={async () => {
+                  setError(""); setStatus("");
+                  try {
+                    await withdrawSourceAuthorConsent(feedId, consent.id, withdrawalReasons[consent.id]);
+                    setStatus("Consent withdrawn and imported identity, contact, and content removed.");
+                    await refresh();
+                  } catch (caught) { setError(caught.message); }
+                }}>Withdraw consent and remove content</button>
+              </>}
+            </li>
+          ))}</ul> : <p>No author consent has been recorded.</p>}
+        </section>
+
+        <section aria-labelledby="discrepancies-title">
+          <h2 id="discrepancies-title">Source Discrepancies</h2>
+          {discrepancies.length ? <ul className="moderation-list">{discrepancies.map((discrepancy) => (
+            <li key={discrepancy.id}>
+              <div><strong>{discrepancy.listingId || "Removed source post"}</strong><span>{label(discrepancy.type)} · {discrepancy.feedName}</span></div>
+              <div className="source-snapshot"><strong>Current</strong><br />{snapshot(discrepancy.current)}</div>
+              <div className="source-snapshot"><strong>Incoming</strong><br />{discrepancy.redacted ? "Content redacted after consent withdrawal." : snapshot(discrepancy.incoming?.listing)}</div>
+              <label>Resolution reason<input required minLength="3" maxLength="500" value={resolutionReasons[discrepancy.id] || ""} onChange={(event) => setResolutionReasons({ ...resolutionReasons, [discrepancy.id]: event.target.value })} /></label>
+              <div className="decision-row">
+                <button type="button" className="primary-action" disabled={discrepancy.redacted} onClick={() => decide(discrepancy.id, "apply_source")}>Apply source</button>
+                <button type="button" className="secondary-action" onClick={() => decide(discrepancy.id, "retain_current")}>Retain current</button>
+              </div>
+            </li>
+          ))}</ul> : <p>No open Source Discrepancies.</p>}
+        </section>
       </section>
     </main>
   );
@@ -116,8 +198,20 @@ export default function ModerationPage() {
       setError(caught.message);
     }
   }
+
+  async function decide(id, decision) {
+    setError(""); setStatus("");
+    try {
+      await resolveSourceDiscrepancy(id, decision, resolutionReasons[id]);
+      setStatus(`Source Discrepancy ${decision === "apply_source" ? "applied" : "retained"}.`);
+      await refresh();
+    } catch (caught) { setError(caught.message); }
+  }
 }
 
 function formatCategory(category) {
   return `${category.slice(0, 1).toUpperCase()}${category.slice(1)}`;
 }
+
+const label = (value) => value.split("_").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
+const snapshot = (listing) => listing ? `${listing.title} · ${listing.category} · $${listing.price} · ${listing.description}` : "No current public content.";

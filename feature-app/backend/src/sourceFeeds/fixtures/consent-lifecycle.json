@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "name": "consent-lifecycle",
+  "feedId": "telegram-marketplace-demo",
+  "steps": [
+    {
+      "type": "consent_grant",
+      "key": "author-one",
+      "at": "2026-08-29T09:00:00Z",
+      "consent": {
+        "externalAuthorId": "fixture-consenting-author",
+        "scopes": ["display_name", "contact"],
+        "displayName": "Fixture Author",
+        "contactUrl": "https://t.me/fixture_author_unavailable",
+        "evidenceReference": "fictional-consent-evidence-001",
+        "reason": "Recorded fictional fixture consent"
+      }
+    },
+    {
+      "type": "telegram_update",
+      "at": "2026-08-29T09:02:00Z",
+      "update": {
+        "update_id": 2001,
+        "message": {
+          "message_id": 601,
+          "date": 1787994060,
+          "from": { "id": "fixture-consenting-author" },
+          "marketplace_listing": {
+            "id": "fixture-notebook",
+            "title": "Fictional ruled notebook",
+            "category": "Study",
+            "price": 4,
+            "description": "Unused ruled notebook from a fictional fixture.",
+            "source_name": "NUS Marketplace",
+            "source_url": "https://example.com/fixture/notebook",
+            "image_url": "/images/listings/calculator.svg",
+            "image_alt": "Fixture illustration used for a notebook",
+            "fictional": true
+          }
+        }
+      }
+    },
+    {
+      "type": "consent_withdraw",
+      "key": "author-one",
+      "at": "2026-08-29T09:05:00Z",
+      "reason": "Fixture author withdrew fictional consent"
+    }
+  ]
+}

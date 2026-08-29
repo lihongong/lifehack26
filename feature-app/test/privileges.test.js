@@ -5,6 +5,7 @@ import { createApp } from "../backend/src/app.js";
 import { createDatabase } from "../backend/src/db/database.js";
 import { completeLaunch, createLaunchAssertion, resolveSession } from "../backend/src/services/authService.js";
 import { createClock } from "../backend/src/services/clock.js";
+import { replaySourceFixture } from "../backend/src/sourceFeeds/telegramFixtureAdapter.js";
 
 const now = new Date("2026-08-29T10:00:00Z");
 const operatorIdentity = { subject: "operator-subject", email: "operator@example.nus.edu.sg" };
@@ -29,6 +30,7 @@ test("only the configured stable subject bootstraps the first Platform Operator"
 
 test("Operator enrollment, self-directed moderation, reversal, audit access, and removal are enforced end to end", async () => {
   const database = createDatabase(":memory:");
+  replaySourceFixture(database, "marketplace-baseline", { identitySecret: "fictional-source-fixture-secret" });
   const clock = createClock(now);
   const operator = login(database, operatorIdentity, operatorIdentity.subject);
   const moderator = login(database, moderatorIdentity);

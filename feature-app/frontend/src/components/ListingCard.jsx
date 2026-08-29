@@ -11,11 +11,7 @@ function freshness(value) {
 
 export default function ListingCard({ listing }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const message = encodeURIComponent(`Hi! I am interested in the fictional demo listing: ${listing.title}.`);
-  const whatsappUrl = `https://wa.me/${listing.contacts.whatsapp}?text=${message}`;
-  const telegramUrl = `https://t.me/${listing.contacts.telegram}`;
-  const usesWhatsApp = listing.preferredContact === "whatsapp";
-  const contactUrl = usesWhatsApp ? whatsappUrl : telegramUrl;
+  const usesWhatsApp = listing.contactUrl?.includes("wa.me");
   const contactLabel = usesWhatsApp ? "WhatsApp" : "Telegram";
   const sourceTime = new Intl.DateTimeFormat("en-SG", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Singapore" }).format(new Date(listing.updatedAt));
 
@@ -25,18 +21,20 @@ export default function ListingCard({ listing }) {
         {imageFailed ? <><ImageOff aria-hidden="true" size={30} /><span>Image unavailable</span></> : <img src={listing.imageUrl} alt={listing.imageAlt} onError={() => setImageFailed(true)} />}
       </div>
       <div className="listing-content">
-        <div className="listing-top"><span className="category">{listing.category}</span></div>
+        <div className="listing-top"><span className="category">{listing.category}</span>{listing.authorDisplayName && <span className="source-author">By {listing.authorDisplayName}</span>}</div>
         <h3>{listing.title}</h3>
         <span className="fictional-note">Fictional demo listing</span>
         <p>{listing.description}</p>
         <strong className="price">${listing.price}</strong>
         <div className="listing-meta"><span>Source: {listing.source}</span><time dateTime={listing.updatedAt}>Updated {freshness(listing.updatedAt)} · {sourceTime}</time></div>
         <div className="listing-footer">
-          <span className="contact-caption">Preferred contact</span>
-          <a className={`contact-button ${listing.preferredContact}`} href={contactUrl} target="_blank" rel="noopener noreferrer" aria-label={`Message seller on ${contactLabel} about ${listing.title}`} title={`Demo ${contactLabel} contact`}>
-            {usesWhatsApp ? <SiWhatsapp aria-hidden="true" size={19} /> : <SiTelegram aria-hidden="true" size={18} />}
-            <span>{contactLabel}</span>
-          </a>
+          {listing.contactUrl ? <>
+            <span className="contact-caption">Consented contact</span>
+            <a className={`contact-button ${usesWhatsApp ? "whatsapp" : "telegram"}`} href={listing.contactUrl} target="_blank" rel="noopener noreferrer" aria-label={`Message source author on ${contactLabel} about ${listing.title}`} title={`${contactLabel} contact`}>
+              {usesWhatsApp ? <SiWhatsapp aria-hidden="true" size={19} /> : <SiTelegram aria-hidden="true" size={18} />}
+              <span>{contactLabel}</span>
+            </a>
+          </> : <span className="contact-caption">Author attribution withheld</span>}
         </div>
         <ReportControl targetType="marketplace_listing" targetId={listing.id} label="Report Marketplace Listing" />
         <CommentThread listing={listing} />

@@ -7,8 +7,15 @@ import { completeLaunch, createLaunchAssertion } from "../backend/src/services/a
 import { createClock } from "../backend/src/services/clock.js";
 import { updateParticipantProfile } from "../backend/src/services/participantService.js";
 import { acceptActivePolicies, activatePolicyVersion, getActivePolicies } from "../backend/src/services/policyService.js";
+import { replaySourceFixture } from "../backend/src/sourceFeeds/telegramFixtureAdapter.js";
 
 const now = new Date("2026-08-29T10:00:00Z");
+
+function createTestDatabase() {
+  const database = createDatabase(":memory:");
+  replaySourceFixture(database, "marketplace-baseline", { identitySecret: "fictional-source-fixture-secret" });
+  return database;
+}
 
 function createParticipant(database, subject, displayName) {
   const launched = completeLaunch(
@@ -37,7 +44,7 @@ function grantModerator(database, participantId) {
 }
 
 test("public Marketplace Comment threads allow one authenticated reply level without leaking private identity", async () => {
-  const database = createDatabase(":memory:");
+  const database = createTestDatabase();
   const author = createParticipant(database, "comment-author", "Comment Casey");
   const replier = createParticipant(database, "comment-replier", "Reply Riley");
   acceptCommentPolicies(database, author.participant.id);
@@ -83,7 +90,7 @@ test("public Marketplace Comment threads allow one authenticated reply level wit
 });
 
 test("obvious contact details require explicit confirmation before Comment submission", async () => {
-  const database = createDatabase(":memory:");
+  const database = createTestDatabase();
   const author = createParticipant(database, "privacy-author", "Privacy Parker");
   acceptCommentPolicies(database, author.participant.id);
   const api = request(createApp({ database, clock: createClock(now), environment: "test" }));
@@ -119,7 +126,7 @@ test("obvious contact details require explicit confirmation before Comment submi
 });
 
 test("Comment authors can edit and delete while removed parents preserve their replies", async () => {
-  const database = createDatabase(":memory:");
+  const database = createTestDatabase();
   const author = createParticipant(database, "edit-author", "Editing Eden");
   const replier = createParticipant(database, "edit-replier", "Replying Remy");
   acceptCommentPolicies(database, author.participant.id);
@@ -175,7 +182,7 @@ test("Comment authors can edit and delete while removed parents preserve their r
 });
 
 test("reply creation atomically creates a private in-app notification for the parent author", async () => {
-  const database = createDatabase(":memory:");
+  const database = createTestDatabase();
   const author = createParticipant(database, "notify-author", "Notified Noor");
   const replier = createParticipant(database, "notify-replier", "Reply Rowan");
   acceptCommentPolicies(database, author.participant.id);
@@ -222,7 +229,7 @@ test("reply creation atomically creates a private in-app notification for the pa
 });
 
 test("Content Reports preserve submission evidence through later edits and deletion without awarding Gems", async () => {
-  const database = createDatabase(":memory:");
+  const database = createTestDatabase();
   const author = createParticipant(database, "reported-author", "Reported Avery");
   const reporter = createParticipant(database, "content-reporter", "Reporter River");
   const moderator = createParticipant(database, "report-moderator", "Reviewer Reese");
@@ -274,7 +281,7 @@ test("Content Reports preserve submission evidence through later edits and delet
 });
 
 test("Moderator resolution hides a reported Comment and independently closes duplicate reports", async () => {
-  const database = createDatabase(":memory:");
+  const database = createTestDatabase();
   const author = createParticipant(database, "moderated-author", "Moderated Morgan");
   const firstReporter = createParticipant(database, "first-reporter", "First Finley");
   const secondReporter = createParticipant(database, "second-reporter", "Second Sage");
@@ -331,7 +338,7 @@ test("Moderator resolution hides a reported Comment and independently closes dup
 });
 
 test("Moderators can directly hide any Comment with an immutable audit reason", async () => {
-  const database = createDatabase(":memory:");
+  const database = createTestDatabase();
   const author = createParticipant(database, "direct-author", "Direct Drew");
   const moderator = createParticipant(database, "direct-moderator", "Moderator Marlow");
   grantModerator(database, moderator.participant.id);
@@ -368,7 +375,7 @@ test("Moderators can directly hide any Comment with an immutable audit reason", 
 });
 
 test("a resolved Marketplace Listing report hides the public listing", async () => {
-  const database = createDatabase(":memory:");
+  const database = createTestDatabase();
   const reporter = createParticipant(database, "listing-reporter", "Listing Lane");
   const moderator = createParticipant(database, "listing-moderator", "Moderator Lou");
   grantModerator(database, moderator.participant.id);

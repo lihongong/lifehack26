@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { demoListings } from "../data/demoListings.js";
 import { hiddenListingIds, setCommentVisibility, setListingVisibility } from "./moderationService.js";
+import { findListings } from "./listingsService.js";
 import { addNotification } from "./notificationService.js";
 import { recordAudit, validateReason } from "./privilegeService.js";
 import { withImmediateTransaction } from "../db/database.js";
+import { hashSourceAuthor } from "../sourceFeeds/sourceFeedDomain.js";
 
 const categories = new Set(["fraud", "safety", "privacy", "staleness"]);
 
@@ -12,8 +13,9 @@ function error(message, status) {
 }
 
 function marketplaceListingEvidence(database, targetId) {
-  const listing = demoListings.find(({ id }) => id === targetId);
-  if (!listing || hiddenListingIds(database).has(targetId)) throw error("Reported content not found.", 404);
+  const listing = findListings(database, {}, hiddenListingIds(database))
+    .find(({ id }) => id === targetId);
+  if (!listing) throw error("Reported content not found.", 404);
   return { postId: listing.id, label: listing.title, text: listing.description };
 }
 
@@ -127,13 +129,15 @@ function hideReportedComment(database, actorId, report, _reason, now) {
   return { outcome: "hidden", authorParticipantId: comment.author_participant_id };
 }
 
-function hideReportedListing(database, actorId, report, reason, now) {
-  const listing = demoListings.find(({ id }) => id === report.target_id);
+function hideReportedListing(database, actorId, report, reason, now, identitySecret) {
+  const listing = findListings(database, {}, new Set(), { includeInternal: true })
+    .find(({ id }) => id === report.target_id);
   if (!listing || hiddenListingIds(database).has(report.target_id)) {
     return { outcome: "already_unavailable", authorParticipantId: null };
   }
   setListingVisibility(database, actorId, report.target_id, true, reason, now);
-  const author = database.prepare("SELECT id FROM participants WHERE external_subject = ?").get(listing.ownerSubject);
+  const author = database.prepare("SELECT id, external_subject AS externalSubject FROM participants").all()
+    .find(({ externalSubject }) => hashSourceAuthor("telegram-marketplace-demo", externalSubject, identitySecret) === listing.authorKeyHash);
   return { outcome: "hidden", authorParticipantId: author?.id || null };
 }
 
@@ -168,7 +172,7 @@ function removeUnreferencedDeletedComment(database, report) {
   if (!retained) database.prepare("DELETE FROM comments WHERE id = ?").run(report.target_id);
 }
 
-export function resolveContentReport(database, actor, reportId, input, now) {
+export function resolveContentReport(database, actor, reportId, input, now, identitySecret) {
   const requestedOutcome = String(input?.outcome || "");
   if (!new Set(["hidden", "dismissed"]).has(requestedOutcome)) {
     throw error("Content Report outcome is invalid.", 422);
@@ -189,7 +193,7 @@ export function resolveContentReport(database, actor, reportId, input, now) {
     let outcome = requestedOutcome;
     let authorParticipantId = null;
     if (requestedOutcome === "hidden") {
-      const result = targetHandler.hide(database, actor.participant_id, report, reason, now);
+      const result = targetHandler.hide(database, actor.participant_id, report, reason, now, identitySecret);
       outcome = result.outcome;
       authorParticipantId = result.authorParticipantId;
     }

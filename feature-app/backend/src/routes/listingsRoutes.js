@@ -6,7 +6,7 @@ export function listingsRoutes({ database }) {
   const router = Router();
   router.get("/", (req, res) =>
     res.json({
-      listings: findListings({ query: req.query.query, category: req.query.category, sort: req.query.sort }, hiddenListingIds(database)),
+      listings: findListings(database, { query: req.query.query, category: req.query.category, sort: req.query.sort }, hiddenListingIds(database)),
     }),
   );
   return router;

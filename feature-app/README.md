@@ -20,6 +20,7 @@ npm start
 Participant data is stored in `backend/data/community-exchange.sqlite` and is ignored by Git.
 Set `PLATFORM_OPERATOR_SUBJECT` to the stable uNivUS subject allowed to bootstrap the first Platform Operator.
 Without that deployment setting, all authenticated people remain Participants.
+Set `SOURCE_ID_HASH_SECRET` in production before processing any Source Feed author identifier.
 
 ## Public Buffet feed
 
@@ -88,6 +89,36 @@ Key discussion and reporting endpoints:
 - `GET /api/moderation/reports`
 - `PATCH /api/moderation/reports/:reportId`
 - `PATCH /api/moderation/comments/:commentId`
+
+## Source Feed fixtures and gates
+
+Marketplace demonstration data is replayed through an allowlisted Telegram-style fixture without a live chat, token, or network request.
+Replay the deterministic baseline or another bundled scenario with:
+
+```bash
+npm run replay:source-fixtures
+npm run replay:source-fixtures -- consent-lifecycle
+```
+
+Production starts with an empty Source Feed whose written-permission, privacy-review, and explicit live-enable gates are all disabled.
+The live adapter factory cannot be called until all three per-feed gates pass.
+The current increment intentionally provides no real Telegram connector.
+
+Platform Operator endpoints:
+
+- `GET /api/operator/source-feeds`
+- `PATCH /api/operator/source-feeds/:feedId/gates`
+
+Moderator endpoints:
+
+- `GET /api/moderation/source-discrepancies?status=open`
+- `POST /api/moderation/source-discrepancies/:discrepancyId/resolution`
+- `GET /api/moderation/source-feeds/:feedId/author-consents`
+- `POST /api/moderation/source-feeds/:feedId/author-consents`
+- `DELETE /api/moderation/source-feeds/:feedId/author-consents/:consentId`
+
+Fixture replay is exposed through `/api/dev/source-feeds/replay` only outside production and accepts allowlisted fixture names rather than paths or arbitrary payloads.
+Public Marketplace responses omit private evidence, hashed identifiers, original Source Feed URLs, and unconsented attribution.
 
 Run verification with `npm test`, `npm run build`, and `npm run test:e2e`.
 The end-to-end command builds the current frontend before starting Playwright.

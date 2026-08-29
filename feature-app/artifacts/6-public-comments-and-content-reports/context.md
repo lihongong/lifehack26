@@ -24,7 +24,7 @@ Participants receive in-app, non-push notifications for replies and relevant mod
 
 ## Repository state
 
-- Current branch: `codex/issue-6-public-comments-content-reports`.
+- Current branch: `feat/issue-6-public-comments-content-reports`.
 - Base commit: `cb01d8692cca951e00983b0b54e2e79cf6b338a9`, matching refreshed `origin/main` at preparation time.
 - The tracked working tree was clean before artifact creation.
 - An unrelated untracked `../app/` path exists outside this workspace directory and must remain untouched.

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { demoListings } from "../data/demoListings.js";
 import { hiddenListingIds } from "./moderationService.js";
+import { findListings } from "./listingsService.js";
 import { addNotification } from "./notificationService.js";
 import { withImmediateTransaction } from "../db/database.js";
 
@@ -11,8 +11,9 @@ function error(message, status) {
 }
 
 function requireVisibleListing(database, listingId) {
-  const listing = demoListings.find(({ id }) => id === listingId);
-  if (!listing || hiddenListingIds(database).has(listingId)) {
+  const listing = findListings(database, {}, hiddenListingIds(database))
+    .find(({ id }) => id === listingId);
+  if (!listing) {
     throw error("Marketplace Listing not found.", 404);
   }
   return listing;
