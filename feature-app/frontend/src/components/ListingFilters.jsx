@@ -1,6 +1,6 @@
 import { ChevronDown, Search } from "lucide-react";
 
-function SelectControl({ label, value, onChange, children }) {
+export function SelectControl({ label, value, onChange, children }) {
   return (
     <label className="select-control">
       <span className="select-label">{label}</span>
