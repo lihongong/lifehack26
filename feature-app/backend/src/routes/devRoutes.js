@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { activatePolicyVersion } from "../services/policyService.js";
 import { replaySourceFixture, sourceFixtureSnapshot } from "../sourceFeeds/telegramFixtureAdapter.js";
+import { seedLostItemFixtures } from "../services/lostItemFixture.js";
 
-export function devRoutes({ database, clock, environment, sourceIdentitySecret }) {
+export function devRoutes({ database, clock, environment, sourceIdentitySecret, lostItemCipher }) {
   const router = Router();
   if (environment === "production") return router;
   router.post("/clock", (request, response) => { clock.set(request.body.now); response.json({ now: clock.now().toISOString() }); });
@@ -32,12 +33,22 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret }
       DROP TRIGGER processed_source_updates_no_delete;
       DROP TRIGGER source_deletion_tombstones_no_update;
       DROP TRIGGER source_deletion_tombstones_no_delete;
+      DROP TRIGGER lost_item_reviews_no_update;
+      DROP TRIGGER lost_item_reviews_no_delete;
+      DROP TRIGGER lost_item_review_photos_no_update;
+      DROP TRIGGER lost_item_review_photos_no_delete;
       DELETE FROM report_resolutions;
       DELETE FROM content_reports;
       DELETE FROM notifications;
       DELETE FROM comment_moderation;
       DELETE FROM comments;
       DELETE FROM audit_log;
+      DELETE FROM lost_item_moderation;
+      DELETE FROM lost_item_review_photos;
+      DELETE FROM lost_item_reviews;
+      DELETE FROM lost_item_photos;
+      DELETE FROM lost_item_private_payloads;
+      DELETE FROM lost_item_posts;
       DELETE FROM marketplace_moderation;
       DELETE FROM privileged_roles;
       DELETE FROM marketplace_listings;
@@ -69,10 +80,15 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret }
       CREATE TRIGGER processed_source_updates_no_delete BEFORE DELETE ON processed_source_updates BEGIN SELECT RAISE(ABORT, 'processed source updates are immutable'); END;
       CREATE TRIGGER source_deletion_tombstones_no_update BEFORE UPDATE ON source_deletion_tombstones BEGIN SELECT RAISE(ABORT, 'source deletion tombstones are immutable'); END;
       CREATE TRIGGER source_deletion_tombstones_no_delete BEFORE DELETE ON source_deletion_tombstones BEGIN SELECT RAISE(ABORT, 'source deletion tombstones are immutable'); END;
+      CREATE TRIGGER lost_item_reviews_no_update BEFORE UPDATE ON lost_item_reviews BEGIN SELECT RAISE(ABORT, 'lost item reviews are immutable'); END;
+      CREATE TRIGGER lost_item_reviews_no_delete BEFORE DELETE ON lost_item_reviews BEGIN SELECT RAISE(ABORT, 'lost item reviews are immutable'); END;
+      CREATE TRIGGER lost_item_review_photos_no_update BEFORE UPDATE ON lost_item_review_photos BEGIN SELECT RAISE(ABORT, 'lost item review photos are immutable'); END;
+      CREATE TRIGGER lost_item_review_photos_no_delete BEFORE DELETE ON lost_item_review_photos BEGIN SELECT RAISE(ABORT, 'lost item review photos are immutable'); END;
       COMMIT;
     `);
     clock.set(null);
     replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
+    seedLostItemFixtures(database, lostItemCipher);
     response.status(204).end();
   });
   return router;

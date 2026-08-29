@@ -5,6 +5,8 @@ import { addNotification } from "./notificationService.js";
 import { recordAudit, validateReason } from "./privilegeService.js";
 import { withImmediateTransaction } from "../db/database.js";
 import { hashSourceAuthor } from "../sourceFeeds/sourceFeedDomain.js";
+import { requireVisibleCommentPost } from "./commentService.js";
+import { hideReportedLostItemPost, lostItemEvidence } from "./lostItemService.js";
 
 const categories = new Set(["fraud", "safety", "privacy", "staleness"]);
 
@@ -21,16 +23,23 @@ function marketplaceListingEvidence(database, targetId, now) {
 
 function commentEvidence(database, targetId, now) {
   const comment = database.prepare(`
-    SELECT c.body, c.post_id, c.deleted_at, p.display_name,
+    SELECT c.body, c.post_type, c.post_id, c.deleted_at, p.display_name,
       COALESCE(cm.hidden, 0) AS hidden
     FROM comments c
     JOIN participants p ON p.id = c.author_participant_id
     LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
     WHERE c.id = ?
   `).get(targetId);
-  const listingVisible = comment && findListings(database, {}, hiddenListingIds(database), { now })
-    .some(({ id }) => id === comment.post_id);
-  if (!comment || comment.deleted_at || comment.hidden || !listingVisible) {
+  let postVisible = false;
+  if (comment && !comment.deleted_at && !comment.hidden) {
+    try {
+      requireVisibleCommentPost(database, comment.post_type, comment.post_id, now);
+      postVisible = true;
+    } catch {
+      postVisible = false;
+    }
+  }
+  if (!comment || comment.deleted_at || comment.hidden || !postVisible) {
     throw error("Reported content not found.", 404);
   }
   return { postId: comment.post_id, label: `${comment.display_name}'s Comment`, text: comment.body };
@@ -118,13 +127,22 @@ function addResolutionNotification(database, participantId, outcome, reportId, n
 
 function hideReportedComment(database, actorId, report, _reason, now) {
   const comment = database.prepare(`
-    SELECT c.author_participant_id, c.deleted_at, c.post_id,
+    SELECT c.author_participant_id, c.deleted_at, c.post_type, c.post_id,
       COALESCE(cm.hidden, 0) AS hidden
     FROM comments c
     LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
     WHERE c.id = ?
   `).get(report.target_id);
-  if (!comment || comment.deleted_at || comment.hidden || hiddenListingIds(database).has(comment?.post_id)) {
+  let available = false;
+  if (comment && !comment.deleted_at && !comment.hidden) {
+    try {
+      requireVisibleCommentPost(database, comment.post_type, comment.post_id, now);
+      available = true;
+    } catch {
+      available = false;
+    }
+  }
+  if (!available) {
     return { outcome: "already_unavailable", authorParticipantId: comment?.author_participant_id || null };
   }
   setCommentVisibility(database, actorId, report.target_id, true, now);
@@ -148,6 +166,13 @@ const targetHandlers = Object.freeze({
     evidence: marketplaceListingEvidence,
     hide: hideReportedListing,
     moderatedMessage: "Your Marketplace Listing was hidden by a Moderator.",
+  }),
+  lost_item_post: Object.freeze({
+    evidence: lostItemEvidence,
+    hide(database, actorId, report, reason, now) {
+      return hideReportedLostItemPost(database, actorId, report.target_id, reason, now);
+    },
+    moderatedMessage: "Your Lost-Item Post was hidden by a Moderator.",
   }),
   comment: Object.freeze({
     evidence: commentEvidence,

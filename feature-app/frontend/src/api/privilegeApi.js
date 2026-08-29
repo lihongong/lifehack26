@@ -13,6 +13,8 @@ export const getSourceFeeds = () => request("/api/operator/source-feeds");
 export const updateSourceFeedGates = (feedId, changes) => request(`/api/operator/source-feeds/${encodeURIComponent(feedId)}/gates`, { method: "PATCH", body: JSON.stringify(changes) });
 export const getModerationListings = () => request("/api/moderation/marketplace");
 export const moderateListing = (listingId, hidden, reason) => request(`/api/moderation/marketplace/${encodeURIComponent(listingId)}`, { method: "PATCH", body: JSON.stringify({ hidden, reason }) });
+export const getModerationLostItemPosts = (status = "pending_review") => request(`/api/moderation/lost-item-posts?status=${encodeURIComponent(status)}`);
+export const reviewLostItemPost = (postId, review) => request(`/api/moderation/lost-item-posts/${encodeURIComponent(postId)}/review`, { method: "POST", body: JSON.stringify(review) });
 export const getContentReports = () => request("/api/moderation/reports");
 export const resolveContentReport = (reportId, outcome, reason) => request(`/api/moderation/reports/${encodeURIComponent(reportId)}`, {
   method: "PATCH",

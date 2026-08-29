@@ -12,6 +12,7 @@ import { privilegeRoutes } from "./routes/privilegeRoutes.js";
 import { moderationRoutes } from "./routes/moderationRoutes.js";
 import { commentRoutes } from "./routes/commentRoutes.js";
 import { reportRoutes } from "./routes/reportRoutes.js";
+import { lostItemRoutes } from "./routes/lostItemRoutes.js";
 import { buffetRoutes } from "./routes/buffetRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { participantMiddleware } from "./middleware/requireParticipant.js";
@@ -19,6 +20,7 @@ import { createDatabase } from "./db/database.js";
 import { createClock } from "./services/clock.js";
 import { createUnivusAdapter } from "./integrations/univusAdapter.js";
 import { createDemoBuffetPosts } from "./data/demoBuffetPosts.js";
+import { createLostItemCipher, DEMO_LOST_ITEM_PRIVATE_DATA_KEY } from "./services/lostItemCrypto.js";
 
 const backendRoot = fileURLToPath(new URL("..", import.meta.url));
 const frontendDist = join(backendRoot, "../frontend/dist");
@@ -32,10 +34,13 @@ export function createApp({
   platformOperatorSubject = process.env.PLATFORM_OPERATOR_SUBJECT || "",
   sourceIdentitySecret = process.env.SOURCE_ID_HASH_SECRET ||
     (environment === "production" ? "" : "fictional-source-fixture-secret"),
+  lostItemPrivateDataKey = process.env.LOST_ITEM_PRIVATE_DATA_KEY ||
+    (environment === "production" ? "" : DEMO_LOST_ITEM_PRIVATE_DATA_KEY),
   buffetPosts,
   buffetAnchor,
 } = {}) {
   const app = express();
+  const lostItemCipher = createLostItemCipher(lostItemPrivateDataKey);
   const configuredAnchor = new Date(buffetAnchor || process.env.BUFFET_DEMO_ANCHOR || clock.now());
   const anchoredBuffetPosts =
     buffetPosts ||
@@ -51,10 +56,11 @@ export function createApp({
   app.use("/api", policyRoutes({ database, clock }));
   app.use("/api/protected-actions", protectedActionRoutes({ database }));
   app.use("/api/operator", privilegeRoutes({ database, clock }));
-  app.use("/api/moderation", moderationRoutes({ database, clock, sourceIdentitySecret }));
+  app.use("/api/moderation", moderationRoutes({ database, clock, sourceIdentitySecret, lostItemCipher }));
   app.use("/api", commentRoutes({ database, clock }));
   app.use("/api", reportRoutes({ database, clock }));
-  app.use("/api/dev", devRoutes({ database, clock, environment, sourceIdentitySecret }));
+  app.use("/api", lostItemRoutes({ database, clock, lostItemCipher }));
+  app.use("/api/dev", devRoutes({ database, clock, environment, sourceIdentitySecret, lostItemCipher }));
   if (environment !== "production") app.use("/univus", express.static(mockHomepage));
   app.use(express.static(frontendDist));
   app.get("*splat", (_request, response) => response.sendFile(join(frontendDist, "index.html")));

@@ -7,7 +7,7 @@ The NUS Community Exchange aggregates time-sensitive community posts and rewards
 The tracer-bullet application currently uses a React and Vite frontend served by a Node and Express backend with SQLite persistence.
 This implementation keeps the current app working while ADR 0004 records the intended production move to Next.js, Vercel, and Supabase.
 `backend/src/app.js` is a side-effect-free application factory so tests can inject an in-memory database, clock, identity adapter, and Platform Operator subject.
-The backend runs every idempotent SQL migration at startup and keeps Participant, session, policy, Gem, Comment, Content Report, notification, privileged-role, moderation, Source Feed, and audit state in SQLite.
+The backend runs every idempotent SQL migration at startup and keeps Participant, session, policy, Gem, Comment, Content Report, notification, privileged-role, moderation, Source Feed, Lost-Item Post, and audit state in SQLite.
 The frontend obtains the private authenticated Participant from `GET /api/auth/session` and uses the returned role to expose only the relevant privileged navigation.
 
 ## Authentication and privileged roles
@@ -85,9 +85,25 @@ Approved aliases map as follows: ERC to UTown; SRC and UCC to Museum/UCC; EA to 
 The undirected edges are UTown-Museum/UCC, UTown-CDE, Museum/UCC-CDE, Museum/UCC-Central, Museum/UCC-FASS, CDE-Central, CDE-Business, Central-FASS, Central-Business, Central-Computing, Central-Science, FASS-Business, Business-Computing, Business-PGP, Computing-PGP, Computing-Science, PGP-Science, PGP-Medicine/Kent Ridge MRT, and Science-Medicine/Kent Ridge MRT.
 The graph is an implementation inference for Nearby Zone behavior, not an official walking-time claim, and the public issue #7 filter does not include adjacent zones.
 
+## Participant Lost-Item Posts
+
+Authenticated Participants with a completed profile and current posting policy acceptance can submit Lost-Item Posts with a controlled category, Singapore lost date, NUS Zone, private original description, Private Identifying Detail data, and up to three optional photos.
+Submissions remain private in `pending_review` until a Moderator writes a separate contact-free public description and approves any safe subset of sanitized photos.
+JPEG, PNG, and WebP uploads are magic-content checked, bounded to 5 MB and 12 megapixels, orientation-corrected, and re-encoded as metadata-free WebP before persistence; malformed, animated, mismatched, or otherwise unsafe requests fail atomically.
+
+Original descriptions and Private Identifying Detail data are encrypted together with AES-256-GCM using revision-associated data.
+Sanitized photo bytes are also encrypted at rest, and `LOST_ITEM_PRIVATE_DATA_KEY` is a separate base64-encoded 32-byte deployment key that is mandatory in production.
+Public projections expose only the controlled category, lost date, public NUS Zone, Moderator-sanitized description, approved photo metadata and URLs, publication time, and fixture marker.
+They never expose the Participant identity, original text, Private Identifying Detail data, rejected photos, filenames, or encryption metadata.
+
+Participants can replace complete pending or rejected submissions using an expected revision, while published posts are locked.
+Withdrawal is available without renewed policy acceptance and immediately removes the Lost-Item Post, approved photos, Comments, and Content Report target from public access while retaining encrypted Operational Records and immutable review history.
+Lost-Item Comments and Content Reports share the existing one-reply-level, contact confirmation, moderation, evidence, and notification behavior.
+Non-production startup and reset create exactly one fictional published Lost-Item Post and one encrypted pending fixture; fixture Participants receive no privileged role.
+
 ## Development and verification
 
-Non-production uNivUS launches support fixed `operator`, `moderator`, and `participant` demo identities through the `x-demo-identity` request header.
+Non-production uNivUS launches support fixed `operator`, `moderator`, `participant`, and `reporter` demo identities through the `x-demo-identity` request header.
 Production rejects the mock adapter and never accepts demo identity selection.
 Playwright starts the app with an in-memory database and the mock Operator's stable subject configured for repeatable role, session-revocation, Comment, and Content Report tests.
 The mobile project uses Playwright's Pixel 7 Chromium profile because the frozen WebKit runtime available on macOS 14 arm64 crashes before application startup.

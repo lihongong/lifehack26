@@ -3,20 +3,25 @@ import { hiddenListingIds } from "./moderationService.js";
 import { findListings } from "./listingsService.js";
 import { addNotification } from "./notificationService.js";
 import { withImmediateTransaction } from "../db/database.js";
+import { getPublicLostItemPost } from "./lostItemService.js";
 
 const marketplacePostType = "marketplace_listing";
+const lostItemPostType = "lost_item_post";
 
 function error(message, status) {
   return Object.assign(new Error(message), { status });
 }
 
-function requireVisibleListing(database, listingId, now) {
-  const listing = findListings(database, {}, hiddenListingIds(database), { now })
-    .find(({ id }) => id === listingId);
-  if (!listing) {
-    throw error("Marketplace Listing not found.", 404);
+export function requireVisibleCommentPost(database, postType, postId, now) {
+  if (postType === marketplacePostType) {
+    const listing = findListings(database, {}, hiddenListingIds(database), { now }).find(({ id }) => id === postId);
+    if (listing) return listing;
   }
-  return listing;
+  if (postType === lostItemPostType) {
+    const post = getPublicLostItemPost(database, postId);
+    if (post) return post;
+  }
+  throw error("Comment post not found.", 404);
 }
 
 function validateBody(input) {
@@ -72,8 +77,8 @@ function findCommentRow(database, commentId) {
   `).get(commentId);
 }
 
-export function listMarketplaceComments(database, listingId, now) {
-  requireVisibleListing(database, listingId, now);
+export function listPostComments(database, postType, postId, now) {
+  requireVisibleCommentPost(database, postType, postId, now);
   const comments = database.prepare(`
     SELECT c.*, p.public_id, p.display_name, COALESCE(cm.hidden, 0) AS hidden
     FROM comments c
@@ -81,7 +86,7 @@ export function listMarketplaceComments(database, listingId, now) {
     LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
     WHERE c.post_type = ? AND c.post_id = ?
     ORDER BY c.created_at, c.id
-  `).all(marketplacePostType, listingId).map(publicComment);
+  `).all(postType, postId).map(publicComment);
   const topLevel = comments.filter(({ parentCommentId }) => !parentCommentId);
   const replies = new Map(topLevel.map(({ id }) => [id, []]));
   for (const comment of comments.filter(({ parentCommentId }) => parentCommentId)) {
@@ -90,8 +95,8 @@ export function listMarketplaceComments(database, listingId, now) {
   return topLevel.map((comment) => ({ ...comment, replies: replies.get(comment.id) }));
 }
 
-export function createMarketplaceComment(database, participant, listingId, input, now) {
-  requireVisibleListing(database, listingId, now);
+export function createPostComment(database, participant, postType, postId, input, now) {
+  requireVisibleCommentPost(database, postType, postId, now);
   if (!participant.display_name) throw error("Complete your public profile before commenting.", 422);
   const body = validateBody(input?.body);
   validateContactConfirmation(body, input?.confirmContactDetails);
@@ -104,7 +109,7 @@ export function createMarketplaceComment(database, participant, listingId, input
       FROM comments c LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
       WHERE c.id = ?
     `).get(parentCommentId);
-    if (!parent || parent.post_type !== marketplacePostType || parent.post_id !== listingId) {
+    if (!parent || parent.post_type !== postType || parent.post_id !== postId) {
       throw error("Parent Comment not found.", 404);
     }
     if (parent.parent_comment_id) throw error("Comments support one reply level.", 422);
@@ -119,7 +124,7 @@ export function createMarketplaceComment(database, participant, listingId, input
         id, post_type, post_id, parent_comment_id, author_participant_id,
         body, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, marketplacePostType, listingId, parentCommentId, participant.participant_id, body, timestamp, timestamp);
+    `).run(id, postType, postId, parentCommentId, participant.participant_id, body, timestamp, timestamp);
     if (parent && parent.author_participant_id !== participant.participant_id) {
       addNotification(database, {
         participantId: parent.author_participant_id,
@@ -139,7 +144,7 @@ export function editComment(database, participant, commentId, input, now) {
   if (comment.author_participant_id !== participant.participant_id) {
     throw error("Only the Comment author can edit it.", 403);
   }
-  requireVisibleListing(database, comment.post_id, now);
+  requireVisibleCommentPost(database, comment.post_type, comment.post_id, now);
   const body = validateBody(input?.body);
   validateContactConfirmation(body, input?.confirmContactDetails);
   const timestamp = now.toISOString();

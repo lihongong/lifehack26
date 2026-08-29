@@ -2,15 +2,20 @@ import { createApp } from "./app.js";
 import { createDatabase } from "./db/database.js";
 import { createClock } from "./services/clock.js";
 import { replaySourceFixture } from "./sourceFeeds/telegramFixtureAdapter.js";
+import { createLostItemCipher, DEMO_LOST_ITEM_PRIVATE_DATA_KEY } from "./services/lostItemCrypto.js";
+import { seedLostItemFixtures } from "./services/lostItemFixture.js";
 
 const environment = process.env.NODE_ENV || "development";
 const sourceIdentitySecret = process.env.SOURCE_ID_HASH_SECRET || (environment === "production" ? "" : "fictional-source-fixture-secret");
+const lostItemPrivateDataKey = process.env.LOST_ITEM_PRIVATE_DATA_KEY ||
+  (environment === "production" ? "" : DEMO_LOST_ITEM_PRIVATE_DATA_KEY);
 const database = createDatabase();
 const clock = createClock();
 if (environment !== "production" && database.prepare("SELECT 1 FROM processed_source_updates LIMIT 1").get() == null) {
   replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
 }
-const app = createApp({ database, clock, environment, sourceIdentitySecret });
+if (environment !== "production") seedLostItemFixtures(database, createLostItemCipher(lostItemPrivateDataKey));
+const app = createApp({ database, clock, environment, sourceIdentitySecret, lostItemPrivateDataKey });
 const port = Number(process.env.PORT || 3000);
 app.listen(port, "127.0.0.1", () =>
   console.log(`NUS Exchange backend listening on http://127.0.0.1:${port}`),
