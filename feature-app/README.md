@@ -18,6 +18,8 @@ npm start
 - Feature app: `http://127.0.0.1:3000/`
 
 Participant data is stored in `backend/data/community-exchange.sqlite` and is ignored by Git.
+Set `PLATFORM_OPERATOR_SUBJECT` to the stable uNivUS subject allowed to bootstrap the first Platform Operator.
+Without that deployment setting, all authenticated people remain Participants.
 
 ## Protected community actions
 
@@ -32,5 +34,19 @@ Key policy endpoints:
 - `GET /api/me/policy-acceptances`
 - `POST /api/me/policy-acceptances`
 - `POST /api/protected-actions/:action`
+
+## Privileged operations
+
+The Platform Operator can enroll and remove Moderators at `/operator`, where the complete immutable audit trail is also visible.
+Moderators hide or restore Marketplace Listings with a required reason at `/moderation/marketplace`.
+
+Key privileged endpoints:
+
+- `GET /api/operator/moderators`
+- `POST /api/operator/moderators`
+- `DELETE /api/operator/moderators/:participantId`
+- `GET /api/operator/audit`
+- `GET /api/moderation/marketplace`
+- `PATCH /api/moderation/marketplace/:listingId`
 
 Run verification with `npm test`, `npm run build`, and `npm run test:e2e`. The end-to-end command builds the current frontend before starting Playwright.

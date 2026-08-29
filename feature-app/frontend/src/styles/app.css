@@ -45,6 +45,8 @@ body {
   color: #090909;
   text-decoration: none;
 }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.privileged-link { color: #d9e1f1; font-size: 11px; font-weight: 750; text-decoration: none; }
 .welcome {
   padding: 25px 22px 28px;
   background: var(--orange);
@@ -440,6 +442,39 @@ select {
 .policy-accepted { display: flex; align-items: center; gap: 8px; margin-top: 15px; color: #8ed6a5; font-size: 12px; font-weight: 750; }
 .policy-submit { width: 100%; margin-top: 18px; }
 .policy-submit:disabled { opacity: .45; cursor: not-allowed; }
+.privileged-page { padding: 30px 20px 50px; color: var(--muted); }
+.privileged-page > h1 { margin: 4px 0 10px; color: var(--heading); font-size: 28px; }
+.privileged-page > p { font-size: 13px; line-height: 1.5; }
+.privileged-page h2 { margin: 28px 0 14px; color: var(--heading); font-size: 18px; }
+.privileged-form { display: grid; gap: 13px; margin-top: 24px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+.privileged-form h2 { margin: 0; }
+.privileged-form label,
+.management-list label,
+.moderation-list label { display: grid; gap: 6px; color: #aeb8ce; font-size: 11px; font-weight: 700; }
+.privileged-form input,
+.management-list input,
+.moderation-list input { width: 100%; border: 1px solid #3b465d; }
+.management-list,
+.moderation-list,
+.audit-log ul { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.management-list li,
+.moderation-list li,
+.audit-log li { display: grid; gap: 11px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #141a26; }
+.management-list li > div,
+.moderation-list li > div { display: flex; flex-direction: column; gap: 4px; }
+.management-list strong,
+.moderation-list strong { color: var(--heading); }
+.management-list span,
+.moderation-list span { font-size: 11px; }
+.danger-action { min-height: 42px; border: 1px solid #81483f; border-radius: 11px; background: #3a1c1a; color: #ffb3a6; font: inherit; font-weight: 750; cursor: pointer; }
+.moderation-list li.is-hidden { border-color: #715044; background: #231b1b; }
+.moderation-list p { margin: 0; font-size: 11px; }
+.audit-log li > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.audit-log strong { color: var(--heading); font-size: 12px; }
+.audit-log span,
+.audit-log time { color: #8996ad; font-size: 10px; }
+.audit-log p { margin: 0; color: #c9d2e3; font-size: 11px; }
+.self-badge { padding: 4px 7px; border-radius: 8px; background: #4b321c; color: #ffd090 !important; font-weight: 750; }
 @media (min-width: 431px) {
   body {
     padding: 22px 0;

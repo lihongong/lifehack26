@@ -33,3 +33,5 @@ test("unknown filters safely use public defaults", () =>
   assert.equal(findListings({ category: "Unknown", sort: "unknown" }).length, demoListings.length));
 test("no-match searches return an empty result", () =>
   assert.deepEqual(findListings({ query: "does-not-exist" }), []));
+test("internal source identity is never returned publicly", () =>
+  assert.ok(findListings().every((listing) => !("ownerSubject" in listing))));
