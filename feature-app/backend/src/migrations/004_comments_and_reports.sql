@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE INDEX IF NOT EXISTS comments_by_post
 ON comments(post_type, post_id, created_at, id);
 
+CREATE TABLE IF NOT EXISTS comment_moderation (
+  comment_id TEXT PRIMARY KEY REFERENCES comments(id),
+  hidden INTEGER NOT NULL CHECK (hidden IN (0, 1)),
+  updated_by_participant_id TEXT NOT NULL REFERENCES participants(id),
+  updated_at TEXT NOT NULL
+);
+
 CREATE TRIGGER IF NOT EXISTS comments_one_reply_level_insert
 BEFORE INSERT ON comments
 WHEN NEW.parent_comment_id IS NOT NULL AND NOT EXISTS (
@@ -53,3 +60,31 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 CREATE INDEX IF NOT EXISTS notifications_by_participant
 ON notifications(participant_id, created_at DESC, id DESC);
+
+CREATE TABLE IF NOT EXISTS content_reports (
+  id TEXT PRIMARY KEY,
+  target_type TEXT NOT NULL CHECK (target_type IN ('marketplace_listing', 'comment')),
+  target_id TEXT NOT NULL,
+  target_post_id TEXT NOT NULL,
+  reporter_participant_id TEXT NOT NULL REFERENCES participants(id),
+  category TEXT NOT NULL CHECK (category IN ('fraud', 'safety', 'privacy', 'staleness')),
+  evidence_label TEXT NOT NULL,
+  evidence_text TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS content_reports_by_target
+ON content_reports(target_type, target_id, created_at, id);
+
+CREATE TABLE IF NOT EXISTS report_resolutions (
+  report_id TEXT PRIMARY KEY,
+  outcome TEXT NOT NULL CHECK (outcome IN ('hidden', 'already_unavailable', 'dismissed')),
+  moderator_participant_id TEXT NOT NULL REFERENCES participants(id),
+  reason TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TRIGGER IF NOT EXISTS report_resolutions_no_update
+BEFORE UPDATE ON report_resolutions BEGIN SELECT RAISE(ABORT, 'report resolutions are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS report_resolutions_no_delete
+BEFORE DELETE ON report_resolutions BEGIN SELECT RAISE(ABORT, 'report resolutions are immutable'); END;

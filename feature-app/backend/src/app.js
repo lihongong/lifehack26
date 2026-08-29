@@ -11,6 +11,7 @@ import { protectedActionRoutes } from "./routes/protectedActionRoutes.js";
 import { privilegeRoutes } from "./routes/privilegeRoutes.js";
 import { moderationRoutes } from "./routes/moderationRoutes.js";
 import { commentRoutes } from "./routes/commentRoutes.js";
+import { reportRoutes } from "./routes/reportRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { participantMiddleware } from "./middleware/requireParticipant.js";
 import { createDatabase } from "./db/database.js";
@@ -35,6 +36,7 @@ export function createApp({ database = createDatabase(), clock = createClock(), 
   app.use("/api/operator", privilegeRoutes({ database, clock }));
   app.use("/api/moderation", moderationRoutes({ database, clock }));
   app.use("/api", commentRoutes({ database, clock }));
+  app.use("/api", reportRoutes({ database, clock }));
   app.use("/api/dev", devRoutes({ database, clock, environment }));
   if (environment !== "production") app.use("/univus", express.static(mockHomepage));
   app.use(express.static(frontendDist));

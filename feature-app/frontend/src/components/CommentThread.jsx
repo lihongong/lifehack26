@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { createComment, deleteComment, editComment, getComments } from "../api/commentApi.js";
+import ReportControl from "./ReportControl.jsx";
 
 export default function CommentThread({ listing }) {
   const { participant } = useAuth();
@@ -145,8 +146,8 @@ function CommentItem({ comment, listingId, participant, busy, replyingTo, setRep
         <Link to={`/participants/${comment.author.publicId}`}>{comment.author.displayName}</Link>
         {comment.edited && !comment.deleted && <span>Edited</span>}
       </div>
-      <p>{comment.deleted ? "Comment removed by author." : comment.body}</p>
-      {!comment.deleted && (
+      <p>{comment.deleted ? "Comment removed by author." : comment.hidden ? "Comment hidden by a Moderator." : comment.body}</p>
+      {!comment.deleted && !comment.hidden && (
         <div className="comment-actions">
           {participant && !comment.parentCommentId && (
             <button type="button" onClick={() => { setReplyingTo(comment.id); setReplyBody(""); }}>
@@ -160,6 +161,9 @@ function CommentItem({ comment, listingId, participant, busy, replyingTo, setRep
             </>
           )}
         </div>
+      )}
+      {!comment.deleted && !comment.hidden && (
+        <ReportControl targetType="comment" targetId={comment.id} label={`Report Comment by ${comment.author.displayName}`} />
       )}
       {editing === comment.id && (
         <form className="comment-form compact" onSubmit={(event) => {

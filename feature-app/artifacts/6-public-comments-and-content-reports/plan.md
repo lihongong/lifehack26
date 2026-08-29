@@ -112,7 +112,7 @@ Each behavior slice will start with one failing focused test, add the smallest i
 ### End to end
 
 - Baseline route: `/`, after `POST /api/dev/reset`, with the seeded Marketplace Listing grid visible.
-- Viewports: Playwright's configured iPhone 13 mobile project and Desktop Chrome project.
+- Viewports: Playwright's configured Pixel 7 mobile Chromium project and Desktop Chrome project.
 - Participant path: launch through the mock uNivUS handoff, complete profile, accept current Comment policies, expand a Marketplace Listing thread, submit a warned Comment, reply from a second Participant, edit, delete, report, and inspect notification history.
 - Moderator path: launch and enroll a Moderator, open `/moderation/marketplace`, inspect the captured report evidence, enter an immutable reason, hide the reported target, independently resolve a second report for the same target, and verify the public result.
 - Distinguishing assertions: only one reply level is offered, explicit contact confirmation is required, edited and deleted states are textually announced, captured report evidence does not change after an author edit, report creation does not change Gems, a hidden Comment uses a placeholder, a hidden Marketplace Listing leaves the public feed, duplicate reports reach terminal outcomes, and relevant notifications appear only in the intended private profiles.

@@ -11,3 +11,8 @@ export const removeModerator = (participantId, reason) => request(`/api/operator
 export const getAuditLog = () => request("/api/operator/audit");
 export const getModerationListings = () => request("/api/moderation/marketplace");
 export const moderateListing = (listingId, hidden, reason) => request(`/api/moderation/marketplace/${encodeURIComponent(listingId)}`, { method: "PATCH", body: JSON.stringify({ hidden, reason }) });
+export const getContentReports = () => request("/api/moderation/reports");
+export const resolveContentReport = (reportId, outcome, reason) => request(`/api/moderation/reports/${encodeURIComponent(reportId)}`, {
+  method: "PATCH",
+  body: JSON.stringify({ outcome, reason }),
+});

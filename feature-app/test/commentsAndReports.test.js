@@ -29,6 +29,13 @@ function acceptCommentPolicies(database, participantId) {
   );
 }
 
+function grantModerator(database, participantId) {
+  database.prepare(`
+    INSERT INTO privileged_roles (participant_id, role, granted_by_participant_id, granted_at)
+    VALUES (?, 'moderator', ?, ?)
+  `).run(participantId, participantId, now.toISOString());
+}
+
 test("public Marketplace Comment threads allow one authenticated reply level without leaking private identity", async () => {
   const database = createDatabase(":memory:");
   const author = createParticipant(database, "comment-author", "Comment Casey");
@@ -209,6 +216,175 @@ test("reply creation atomically creates a private in-app notification for the pa
       ),
       /one reply level/,
     );
+  } finally {
+    database.close();
+  }
+});
+
+test("Content Reports preserve submission evidence through later edits and deletion without awarding Gems", async () => {
+  const database = createDatabase(":memory:");
+  const author = createParticipant(database, "reported-author", "Reported Avery");
+  const reporter = createParticipant(database, "content-reporter", "Reporter River");
+  const moderator = createParticipant(database, "report-moderator", "Reviewer Reese");
+  grantModerator(database, moderator.participant.id);
+  acceptCommentPolicies(database, author.participant.id);
+  const api = request(createApp({ database, clock: createClock(now), environment: "test" }));
+
+  try {
+    const comment = await api
+      .post("/api/listings/calculator/comments")
+      .set("Cookie", author.cookie)
+      .send({ body: "Original private-looking evidence" });
+    const gemBefore = await api.get("/api/me/gems").set("Cookie", reporter.cookie);
+    const report = await api
+      .post("/api/content-reports")
+      .set("Cookie", reporter.cookie)
+      .send({ targetType: "comment", targetId: comment.body.comment.id, category: "privacy" });
+    assert.equal(report.status, 201);
+    assert.equal(report.body.report.category, "privacy");
+
+    await api
+      .patch(`/api/comments/${comment.body.comment.id}`)
+      .set("Cookie", author.cookie)
+      .send({ body: "Edited after reporting" });
+    assert.equal(
+      (await api.delete(`/api/comments/${comment.body.comment.id}`).set("Cookie", author.cookie)).status,
+      204,
+    );
+
+    const queue = await api.get("/api/moderation/reports").set("Cookie", moderator.cookie);
+    assert.equal(queue.status, 200);
+    assert.equal(queue.body.reports.length, 1);
+    assert.equal(queue.body.reports[0].evidence.text, "Original private-looking evidence");
+    assert.equal(queue.body.reports[0].reporter.displayName, "Reporter River");
+    assert.equal(JSON.stringify(queue.body).includes("content-reporter@example.nus.edu.sg"), false);
+    assert.equal(database.prepare("SELECT deleted_at IS NOT NULL AS deleted FROM comments WHERE id = ?").get(comment.body.comment.id).deleted, 1);
+
+    const gemAfter = await api.get("/api/me/gems").set("Cookie", reporter.cookie);
+    assert.deepEqual(gemAfter.body, gemBefore.body);
+  } finally {
+    database.close();
+  }
+});
+
+test("Moderator resolution hides a reported Comment and independently closes duplicate reports", async () => {
+  const database = createDatabase(":memory:");
+  const author = createParticipant(database, "moderated-author", "Moderated Morgan");
+  const firstReporter = createParticipant(database, "first-reporter", "First Finley");
+  const secondReporter = createParticipant(database, "second-reporter", "Second Sage");
+  const moderator = createParticipant(database, "content-moderator", "Moderator Micah");
+  grantModerator(database, moderator.participant.id);
+  acceptCommentPolicies(database, author.participant.id);
+  const api = request(createApp({ database, clock: createClock(now), environment: "test" }));
+
+  try {
+    const comment = await api
+      .post("/api/listings/calculator/comments")
+      .set("Cookie", author.cookie)
+      .send({ body: "Content that needs review" });
+    const firstReport = await api
+      .post("/api/content-reports")
+      .set("Cookie", firstReporter.cookie)
+      .send({ targetType: "comment", targetId: comment.body.comment.id, category: "safety" });
+    const secondReport = await api
+      .post("/api/content-reports")
+      .set("Cookie", secondReporter.cookie)
+      .send({ targetType: "comment", targetId: comment.body.comment.id, category: "fraud" });
+
+    const firstResolution = await api
+      .patch(`/api/moderation/reports/${firstReport.body.report.id}`)
+      .set("Cookie", moderator.cookie)
+      .send({ outcome: "hidden", reason: "Unsafe public guidance" });
+    assert.equal(firstResolution.status, 200);
+    assert.equal(firstResolution.body.resolution.outcome, "hidden");
+
+    const duplicateResolution = await api
+      .patch(`/api/moderation/reports/${secondReport.body.report.id}`)
+      .set("Cookie", moderator.cookie)
+      .send({ outcome: "hidden", reason: "Duplicate report for hidden content" });
+    assert.equal(duplicateResolution.status, 200);
+    assert.equal(duplicateResolution.body.resolution.outcome, "already_unavailable");
+    assert.equal((await api.get("/api/moderation/reports").set("Cookie", moderator.cookie)).body.reports.length, 0);
+
+    const publicComment = (await api.get("/api/listings/calculator/comments")).body.comments[0];
+    assert.equal(publicComment.body, null);
+    assert.equal(publicComment.hidden, true);
+    assert.equal(publicComment.replies.length, 0);
+
+    const authorNotifications = (await api.get("/api/me/notifications").set("Cookie", author.cookie)).body.notifications;
+    assert.equal(authorNotifications.some(({ type }) => type === "comment_moderated"), true);
+    assert.equal((await api.get("/api/me/notifications").set("Cookie", firstReporter.cookie)).body.notifications[0].type, "report_resolved");
+    assert.equal((await api.get("/api/me/notifications").set("Cookie", secondReporter.cookie)).body.notifications[0].type, "report_resolved");
+
+    assert.throws(() => database.prepare("UPDATE report_resolutions SET reason = 'rewritten'").run(), /immutable/);
+    assert.throws(() => database.prepare("DELETE FROM report_resolutions").run(), /immutable/);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM audit_log WHERE target_type = 'content_report'").get().count, 2);
+  } finally {
+    database.close();
+  }
+});
+
+test("Moderators can directly hide and restore any Comment with immutable audit reasons", async () => {
+  const database = createDatabase(":memory:");
+  const author = createParticipant(database, "direct-author", "Direct Drew");
+  const moderator = createParticipant(database, "direct-moderator", "Moderator Marlow");
+  grantModerator(database, moderator.participant.id);
+  acceptCommentPolicies(database, author.participant.id);
+  const api = request(createApp({ database, clock: createClock(now), environment: "test" }));
+
+  try {
+    const comment = await api
+      .post("/api/listings/calculator/comments")
+      .set("Cookie", author.cookie)
+      .send({ body: "A directly moderated Comment" });
+    const hidden = await api
+      .patch(`/api/moderation/comments/${comment.body.comment.id}`)
+      .set("Cookie", moderator.cookie)
+      .send({ hidden: true, reason: "Contains unsafe instructions" });
+    assert.equal(hidden.status, 200);
+    assert.equal(hidden.body.comment.hidden, true);
+    assert.equal((await api.get("/api/listings/calculator/comments")).body.comments[0].body, null);
+
+    const restored = await api
+      .patch(`/api/moderation/comments/${comment.body.comment.id}`)
+      .set("Cookie", moderator.cookie)
+      .send({ hidden: false, reason: "Safety review completed" });
+    assert.equal(restored.status, 200);
+    assert.equal(restored.body.comment.hidden, false);
+    assert.equal((await api.get("/api/listings/calculator/comments")).body.comments[0].body, "A directly moderated Comment");
+    assert.deepEqual(
+      database.prepare("SELECT event_type, reason FROM audit_log WHERE target_type = 'comment' ORDER BY created_at, event_type").all().map((entry) => ({ ...entry })),
+      [
+        { event_type: "comment_hidden", reason: "Contains unsafe instructions" },
+        { event_type: "comment_restored", reason: "Safety review completed" },
+      ],
+    );
+  } finally {
+    database.close();
+  }
+});
+
+test("a resolved Marketplace Listing report hides the public listing", async () => {
+  const database = createDatabase(":memory:");
+  const reporter = createParticipant(database, "listing-reporter", "Listing Lane");
+  const moderator = createParticipant(database, "listing-moderator", "Moderator Lou");
+  grantModerator(database, moderator.participant.id);
+  const api = request(createApp({ database, clock: createClock(now), environment: "test" }));
+
+  try {
+    const report = await api
+      .post("/api/content-reports")
+      .set("Cookie", reporter.cookie)
+      .send({ targetType: "marketplace_listing", targetId: "calculator", category: "staleness" });
+    assert.equal(report.status, 201);
+    const resolution = await api
+      .patch(`/api/moderation/reports/${report.body.report.id}`)
+      .set("Cookie", moderator.cookie)
+      .send({ outcome: "hidden", reason: "Source post is no longer current" });
+    assert.equal(resolution.status, 200);
+    assert.equal(resolution.body.resolution.outcome, "hidden");
+    assert.equal((await api.get("/api/listings")).body.listings.some(({ id }) => id === "calculator"), false);
+    assert.equal((await api.get("/api/listings/calculator/comments")).status, 404);
   } finally {
     database.close();
   }

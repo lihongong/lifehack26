@@ -2,15 +2,20 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { getModerationListings, moderateListing } from "../api/privilegeApi.js";
+import { getContentReports, getModerationListings, moderateListing, resolveContentReport } from "../api/privilegeApi.js";
 
 export default function ModerationPage() {
   const { participant, loading } = useAuth();
   const [listings, setListings] = useState([]);
+  const [reports, setReports] = useState([]);
   const [reasons, setReasons] = useState({});
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
-  const refresh = () => getModerationListings().then((data) => setListings(data.listings));
+  const refresh = async () => {
+    const [listingData, reportData] = await Promise.all([getModerationListings(), getContentReports()]);
+    setListings(listingData.listings);
+    setReports(reportData.reports);
+  };
   useEffect(() => {
     if (participant?.role === "moderator") refresh().catch((caught) => setError(caught.message));
   }, [participant]);
@@ -26,6 +31,27 @@ export default function ModerationPage() {
         <p>Hide or restore a Marketplace Listing with a reason. Every action is immutable in the Operator audit trail.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {status && <p className="action-status" role="status">{status}</p>}
+        <section aria-labelledby="content-reports-title">
+          <h2 id="content-reports-title">Content Reports</h2>
+          {reports.length ? (
+            <ul className="report-list">{reports.map((report) => (
+              <li key={report.id}>
+                <div className="report-heading">
+                  <strong>{report.evidence.label}</strong>
+                  <span>{formatCategory(report.category)}</span>
+                </div>
+                <p>{report.evidence.text}</p>
+                <small>Reported by {report.reporter.displayName}</small>
+                <label>Resolution reason<input required minLength="3" maxLength="500" value={reasons[report.id] || ""} onChange={(event) => setReasons({ ...reasons, [report.id]: event.target.value })} /></label>
+                <div className="report-actions">
+                  <button className="danger-action" type="button" onClick={() => resolve(report, "hidden")}>Hide content</button>
+                  <button className="secondary-action" type="button" onClick={() => resolve(report, "dismissed")}>Dismiss report</button>
+                </div>
+              </li>
+            ))}</ul>
+          ) : <p>No open Content Reports.</p>}
+        </section>
+        <h2>Direct Marketplace moderation</h2>
         <ul className="moderation-list">{listings.map((listing) => (
           <li key={listing.id} className={listing.hidden ? "is-hidden" : ""}>
             <div><span className="category">{listing.category}</span><strong>{listing.title}</strong><span>{listing.hidden ? "Hidden" : "Publicly visible"}</span></div>
@@ -45,4 +71,21 @@ export default function ModerationPage() {
       </section>
     </main>
   );
+
+  async function resolve(report, outcome) {
+    setError("");
+    setStatus("");
+    try {
+      const { resolution } = await resolveContentReport(report.id, outcome, reasons[report.id]);
+      setStatus(resolution.outcome === "hidden" ? "Content hidden and report resolved." : resolution.outcome === "already_unavailable" ? "Report resolved. Content was already unavailable." : "Report dismissed.");
+      setReasons({ ...reasons, [report.id]: "" });
+      await refresh();
+    } catch (caught) {
+      setError(caught.message);
+    }
+  }
+}
+
+function formatCategory(category) {
+  return `${category.slice(0, 1).toUpperCase()}${category.slice(1)}`;
 }

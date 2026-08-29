@@ -33,12 +33,14 @@ export function detectContactDetails(body) {
 }
 
 function publicComment(row) {
+  const hidden = Boolean(row.hidden);
   return {
     id: row.id,
     parentCommentId: row.parent_comment_id || null,
-    body: row.deleted_at ? null : row.body,
+    body: row.deleted_at || hidden ? null : row.body,
     edited: Boolean(row.edited_at),
     deleted: Boolean(row.deleted_at),
+    hidden,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     author: {
@@ -60,9 +62,10 @@ function validateContactConfirmation(body, confirmed) {
 
 function findCommentRow(database, commentId) {
   return database.prepare(`
-    SELECT c.*, p.public_id, p.display_name
+    SELECT c.*, p.public_id, p.display_name, COALESCE(cm.hidden, 0) AS hidden
     FROM comments c
     JOIN participants p ON p.id = c.author_participant_id
+    LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
     WHERE c.id = ?
   `).get(commentId);
 }
@@ -70,9 +73,10 @@ function findCommentRow(database, commentId) {
 export function listMarketplaceComments(database, listingId) {
   requireVisibleListing(database, listingId);
   const comments = database.prepare(`
-    SELECT c.*, p.public_id, p.display_name
+    SELECT c.*, p.public_id, p.display_name, COALESCE(cm.hidden, 0) AS hidden
     FROM comments c
     JOIN participants p ON p.id = c.author_participant_id
+    LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
     WHERE c.post_type = ? AND c.post_id = ?
     ORDER BY c.created_at, c.id
   `).all(marketplacePostType, listingId).map(publicComment);
@@ -92,12 +96,18 @@ export function createMarketplaceComment(database, participant, listingId, input
   const parentCommentId = input?.parentCommentId || null;
   let parent = null;
   if (parentCommentId) {
-    parent = database.prepare("SELECT parent_comment_id, post_type, post_id, deleted_at, author_participant_id FROM comments WHERE id = ?").get(parentCommentId);
+    parent = database.prepare(`
+      SELECT c.parent_comment_id, c.post_type, c.post_id, c.deleted_at,
+        c.author_participant_id, COALESCE(cm.hidden, 0) AS hidden
+      FROM comments c LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
+      WHERE c.id = ?
+    `).get(parentCommentId);
     if (!parent || parent.post_type !== marketplacePostType || parent.post_id !== listingId) {
       throw error("Parent Comment not found.", 404);
     }
     if (parent.parent_comment_id) throw error("Comments support one reply level.", 422);
     if (parent.deleted_at) throw error("Replies cannot be added to a removed Comment.", 409);
+    if (parent.hidden) throw error("Replies cannot be added to a hidden Comment.", 409);
   }
   const id = randomUUID();
   const timestamp = now.toISOString();
@@ -149,7 +159,13 @@ export function deleteComment(database, participant, commentId, now) {
   }
   if (comment.deleted_at) throw error("Comment is already removed.", 409);
   const hasReplies = Boolean(database.prepare("SELECT 1 FROM comments WHERE parent_comment_id = ? LIMIT 1").get(commentId));
-  if (hasReplies) {
+  const hasOpenReport = Boolean(database.prepare(`
+    SELECT 1 FROM content_reports cr
+    LEFT JOIN report_resolutions rr ON rr.report_id = cr.id
+    WHERE cr.target_type = 'comment' AND cr.target_id = ? AND rr.report_id IS NULL
+    LIMIT 1
+  `).get(commentId));
+  if (hasReplies || hasOpenReport) {
     const timestamp = now.toISOString();
     database.prepare("UPDATE comments SET body = '', deleted_at = ?, updated_at = ? WHERE id = ?")
       .run(timestamp, timestamp, commentId);

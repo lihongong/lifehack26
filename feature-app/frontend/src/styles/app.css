@@ -370,6 +370,13 @@ select {
 .contact-warning strong { color: #ffd09f; font-size: 12px; }
 .contact-warning p { min-height: 0; margin: 6px 0 10px; color: #d9c5ae; font-size: 11px; }
 .contact-warning > div { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.report-control { margin-top: 9px; }
+.report-toggle { min-height: 34px; display: inline-flex; align-items: center; gap: 5px; padding: 0 9px; border: 0; border-radius: 9px; background: transparent; color: #9da9bf; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+.report-control form { display: grid; gap: 8px; padding: 10px; border: 1px solid #3b465d; border-radius: 10px; background: #121925; }
+.report-control label { display: grid; gap: 6px; color: #c4cee1; font-size: 10px; font-weight: 750; }
+.report-control select { border: 1px solid #3b465d; background: #171d2b; }
+.report-control form > div { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.report-status { min-height: 0 !important; margin-top: 8px !important; color: #9ed8af !important; font-size: 10px !important; }
 .status-message,
 .placeholder {
   text-align: center;
@@ -495,9 +502,11 @@ select {
 .moderation-list input { width: 100%; border: 1px solid #3b465d; }
 .management-list,
 .moderation-list,
+.report-list,
 .audit-log ul { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
 .management-list li,
 .moderation-list li,
+.report-list li,
 .audit-log li { display: grid; gap: 11px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #141a26; }
 .management-list li > div,
 .moderation-list li > div { display: flex; flex-direction: column; gap: 4px; }
@@ -508,6 +517,15 @@ select {
 .danger-action { min-height: 42px; border: 1px solid #81483f; border-radius: 11px; background: #3a1c1a; color: #ffb3a6; font: inherit; font-weight: 750; cursor: pointer; }
 .moderation-list li.is-hidden { border-color: #715044; background: #231b1b; }
 .moderation-list p { margin: 0; font-size: 11px; }
+.report-list label { display: grid; gap: 6px; color: #aeb8ce; font-size: 11px; font-weight: 700; }
+.report-list input { width: 100%; border: 1px solid #3b465d; }
+.report-heading { display: flex; justify-content: space-between; gap: 10px; }
+.report-heading strong { color: var(--heading); font-size: 12px; }
+.report-heading span { color: #ffc28f; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.report-list p { margin: 0; color: #d1daeb; font-size: 12px; line-height: 1.5; }
+.report-list small { color: #8e9ab1; }
+.report-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.report-actions .secondary-action { margin: 0; }
 .audit-log li > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .audit-log strong { color: var(--heading); font-size: 12px; }
 .audit-log span,

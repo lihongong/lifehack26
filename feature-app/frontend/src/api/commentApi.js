@@ -26,3 +26,7 @@ export const deleteComment = (commentId) => request(`/api/comments/${encodeURICo
   method: "DELETE",
 });
 export const getNotifications = () => request("/api/me/notifications");
+export const createContentReport = (input) => request("/api/content-reports", {
+  method: "POST",
+  body: JSON.stringify(input),
+});

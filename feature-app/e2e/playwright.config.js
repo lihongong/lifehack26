@@ -11,7 +11,7 @@ export default defineConfig({
     env: { NODE_ENV: "test", DATABASE_PATH: ":memory:", PLATFORM_OPERATOR_SUBJECT: "mock-univus-bryan-001" },
   },
   projects: [
-    { name: "mobile", use: { ...devices["iPhone 13"] } },
+    { name: "mobile", use: { ...devices["Pixel 7"] } },
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
   ],
 });
