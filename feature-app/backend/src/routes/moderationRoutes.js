@@ -25,6 +25,7 @@ import {
   reviewFoundItemReport,
 } from "../services/foundItemService.js";
 import { listOpenBuffetReviews, resolveBuffetReview } from "../services/buffetAlertService.js";
+import { createManualMarketplaceListing, deleteManualMarketplaceListing } from "../services/manualMarketplaceService.js";
 
 function sendPrivatePhoto(response, photo) {
   response.set({
@@ -41,6 +42,10 @@ export function moderationRoutes({ database, clock, sourceIdentitySecret, lostIt
   const router = Router();
   router.use(requireParticipant, requireRole("moderator"));
   router.get("/marketplace", (_request, response) => response.json({ listings: moderatorListings(database, clock.now()) }));
+  router.post("/marketplace", (request, response) => {
+    const listing = createManualMarketplaceListing(database, request.participant, request.body, clock.now());
+    response.status(201).json({ listing });
+  });
   router.get("/reports", (_request, response) => response.json({ reports: listOpenContentReports(database) }));
   router.get("/comments", (_request, response) => response.json({ comments: moderatorComments(database, clock.now()) }));
   router.get("/buffet-reviews", (_request, response) => response.json({ reviews: listOpenBuffetReviews(database) }));
@@ -73,6 +78,10 @@ export function moderationRoutes({ database, clock, sourceIdentitySecret, lostIt
   router.patch("/marketplace/:listingId", (request, response) => {
     const listing = moderateListing(database, request.participant, request.params.listingId, request.body?.hidden, request.body?.reason, clock.now(), sourceIdentitySecret);
     response.json({ listing });
+  });
+  router.delete("/marketplace/:listingId", (request, response) => {
+    deleteManualMarketplaceListing(database, request.participant, request.params.listingId, request.body?.reason, clock.now());
+    response.status(204).end();
   });
   router.get("/lost-item-posts", (request, response) => {
     response.json({ posts: listModeratorLostItemPosts(database, lostItemCipher, request.query.status || "pending_review") });

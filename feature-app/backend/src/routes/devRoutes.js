@@ -90,6 +90,7 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
       DELETE FROM lost_item_private_payloads;
       DELETE FROM lost_item_posts;
       DELETE FROM marketplace_moderation;
+      DELETE FROM manual_marketplace_listings;
       DELETE FROM privileged_roles;
       DELETE FROM marketplace_listings;
       DELETE FROM source_discrepancies;
