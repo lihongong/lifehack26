@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { getGems, logout, updateProfile } from "../api/participantApi.js";
 import { getPolicyAcceptances } from "../api/policyApi.js";
 import { getNotifications } from "../api/commentApi.js";
+import { getBuffetAlerts } from "../api/buffetApi.js";
 import { useEffect, useState } from "react";
 
 export default function ProfilePage() {
@@ -13,11 +14,13 @@ export default function ProfilePage() {
   const [ledger, setLedger] = useState([]);
   const [acceptances, setAcceptances] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [zoneName, setZoneName] = useState("");
   useEffect(() => {
     if (participant) {
       getGems().then((data) => setLedger(data.entries));
       getPolicyAcceptances().then((data) => setAcceptances(data.acceptances));
       getNotifications().then((data) => setNotifications(data.notifications));
+      getBuffetAlerts().then(({ settings }) => setZoneName(settings.zones.find(({ id }) => id === participant.nusZone)?.name || ""));
     }
   }, [participant]);
   if (loading)
@@ -54,7 +57,7 @@ export default function ProfilePage() {
           </div>
           <div>
             <dt>NUS Zone</dt>
-            <dd>{participant.nusZone || "Not selected"}</dd>
+            <dd>{zoneName || "Not selected"}</dd>
           </div>
         </dl>
         <h2>Edit profile</h2>

@@ -3,8 +3,9 @@ import { activatePolicyVersion } from "../services/policyService.js";
 import { replaySourceFixture, sourceFixtureSnapshot } from "../sourceFeeds/telegramFixtureAdapter.js";
 import { seedLostItemFixtures } from "../services/lostItemFixture.js";
 import { seedCustodyLocation } from "../services/foundItemService.js";
+import { ingestBuffetPosts } from "../services/buffetAlertService.js";
 
-export function devRoutes({ database, clock, environment, sourceIdentitySecret, lostItemCipher }) {
+export function devRoutes({ database, clock, environment, sourceIdentitySecret, lostItemCipher, buffetPosts = [] }) {
   const router = Router();
   if (environment === "production") return router;
   router.post("/clock", (request, response) => { clock.set(request.body.now); response.json({ now: clock.now().toISOString() }); });
@@ -52,9 +53,19 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
       DROP TRIGGER found_item_private_evidence_no_delete;
       DROP TRIGGER found_item_photos_no_update;
       DROP TRIGGER found_item_photos_no_delete;
+      DROP TRIGGER helpful_alert_outcomes_no_update;
+      DROP TRIGGER helpful_alert_outcomes_no_delete;
+      DROP TRIGGER buffet_review_resolutions_no_update;
+      DROP TRIGGER buffet_review_resolutions_no_delete;
+      DELETE FROM buffet_review_resolutions;
+      DELETE FROM helpful_alert_outcomes;
+      DELETE FROM buffet_food_gone_reviews;
+      DELETE FROM buffet_alerts;
       DELETE FROM report_resolutions;
       DELETE FROM content_reports;
       DELETE FROM notifications;
+      DELETE FROM buffet_post_states;
+      DELETE FROM buffet_posts;
       DELETE FROM comment_moderation;
       DELETE FROM comments;
       DELETE FROM audit_log;
@@ -127,12 +138,17 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
       CREATE TRIGGER found_item_private_evidence_no_delete BEFORE DELETE ON found_item_private_evidence BEGIN SELECT RAISE(ABORT, 'found item private evidence is immutable'); END;
       CREATE TRIGGER found_item_photos_no_update BEFORE UPDATE ON found_item_photos BEGIN SELECT RAISE(ABORT, 'found item photos are immutable'); END;
       CREATE TRIGGER found_item_photos_no_delete BEFORE DELETE ON found_item_photos BEGIN SELECT RAISE(ABORT, 'found item photos are immutable'); END;
+      CREATE TRIGGER helpful_alert_outcomes_no_update BEFORE UPDATE ON helpful_alert_outcomes BEGIN SELECT RAISE(ABORT, 'Helpful Alert outcomes are immutable'); END;
+      CREATE TRIGGER helpful_alert_outcomes_no_delete BEFORE DELETE ON helpful_alert_outcomes BEGIN SELECT RAISE(ABORT, 'Helpful Alert outcomes are immutable'); END;
+      CREATE TRIGGER buffet_review_resolutions_no_update BEFORE UPDATE ON buffet_review_resolutions BEGIN SELECT RAISE(ABORT, 'Buffet review resolutions are immutable'); END;
+      CREATE TRIGGER buffet_review_resolutions_no_delete BEFORE DELETE ON buffet_review_resolutions BEGIN SELECT RAISE(ABORT, 'Buffet review resolutions are immutable'); END;
       COMMIT;
     `);
     clock.set(null);
     replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
     seedLostItemFixtures(database, lostItemCipher);
     seedCustodyLocation(database);
+    ingestBuffetPosts(database, buffetPosts, clock.now());
     response.status(204).end();
   });
   return router;

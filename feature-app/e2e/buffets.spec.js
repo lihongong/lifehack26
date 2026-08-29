@@ -16,7 +16,7 @@ test("anonymous visitor searches and filters fresh Buffet Posts through expiry",
   await expect(page.getByText("1 post")).toBeVisible();
   await search.fill("");
 
-  const zone = page.getByRole("combobox", { name: "NUS Zone" });
+  const zone = page.getByRole("combobox", { name: "Filter Buffet Posts by NUS Zone" });
   await zone.selectOption("science");
   await expect(page.getByRole("heading", { name: "Vegetarian bento boxes" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Sandwich platters" })).toHaveCount(0);

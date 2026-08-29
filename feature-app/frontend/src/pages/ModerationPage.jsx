@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
 import FoundItemModeration from "../components/FoundItemModeration.jsx";
+import BuffetReviewPanel from "../components/BuffetReviewPanel.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
   getContentReports,
@@ -113,6 +114,7 @@ export default function ModerationPage() {
             </li>;
           })}</ul> : <p>No Lost-Item Posts pending review.</p>}
         </section>
+        <BuffetReviewPanel />
         <section aria-labelledby="content-reports-title">
           <h2 id="content-reports-title">Content Reports</h2>
           {reports.length ? (

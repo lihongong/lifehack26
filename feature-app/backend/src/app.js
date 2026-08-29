@@ -15,6 +15,7 @@ import { reportRoutes } from "./routes/reportRoutes.js";
 import { lostItemRoutes } from "./routes/lostItemRoutes.js";
 import { foundItemRoutes } from "./routes/foundItemRoutes.js";
 import { buffetRoutes } from "./routes/buffetRoutes.js";
+import { buffetAlertRoutes } from "./routes/buffetAlertRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { participantMiddleware } from "./middleware/requireParticipant.js";
 import { createDatabase } from "./db/database.js";
@@ -22,6 +23,7 @@ import { createClock } from "./services/clock.js";
 import { createUnivusAdapter } from "./integrations/univusAdapter.js";
 import { createDemoBuffetPosts } from "./data/demoBuffetPosts.js";
 import { createLostItemCipher, DEMO_LOST_ITEM_PRIVATE_DATA_KEY } from "./services/lostItemCrypto.js";
+import { ingestBuffetPosts } from "./services/buffetAlertService.js";
 
 const backendRoot = fileURLToPath(new URL("..", import.meta.url));
 const frontendDist = join(backendRoot, "../frontend/dist");
@@ -46,11 +48,13 @@ export function createApp({
   const anchoredBuffetPosts =
     buffetPosts ||
     createDemoBuffetPosts(Number.isNaN(configuredAnchor.getTime()) ? clock.now() : configuredAnchor);
+  ingestBuffetPosts(database, anchoredBuffetPosts, clock.now());
   app.disable("x-powered-by");
   app.use(express.json({ limit: "16kb" }));
   app.use(participantMiddleware({ database, clock }));
   app.use("/api/listings", listingsRoutes({ database, clock }));
-  app.use("/api/buffets", buffetRoutes({ posts: anchoredBuffetPosts, clock }));
+  app.use("/api/buffets", buffetRoutes({ database, clock }));
+  app.use("/api/buffet-alerts", buffetAlertRoutes({ database, clock }));
   app.use("/api/integrations", integrationRoutes({ database, clock, univusAdapter }));
   app.use("/api/auth", authRoutes({ database, clock, environment, platformOperatorSubject }));
   app.use("/api", profileRoutes({ database, clock }));
@@ -62,7 +66,14 @@ export function createApp({
   app.use("/api", reportRoutes({ database, clock }));
   app.use("/api", lostItemRoutes({ database, clock, lostItemCipher }));
   app.use("/api", foundItemRoutes({ database, clock, lostItemCipher }));
-  app.use("/api/dev", devRoutes({ database, clock, environment, sourceIdentitySecret, lostItemCipher }));
+  app.use("/api/dev", devRoutes({
+    database,
+    clock,
+    environment,
+    sourceIdentitySecret,
+    lostItemCipher,
+    buffetPosts: anchoredBuffetPosts,
+  }));
   if (environment !== "production") app.use("/univus", express.static(mockHomepage));
   app.use(express.static(frontendDist));
   app.get("*splat", (_request, response) => response.sendFile(join(frontendDist, "index.html")));

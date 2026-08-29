@@ -9,7 +9,7 @@ export default function BuffetFilters({ filters, zones, onChange }) {
         <input type="search" value={filters.query} onChange={(event) => onChange({ query: event.target.value })} placeholder="Search Buffet Posts" aria-label="Search Buffet Posts" />
       </label>
       <div className="filter-row">
-        <SelectControl label="NUS Zone" value={filters.zone} onChange={(event) => onChange({ zone: event.target.value })}>
+        <SelectControl label="Filter Buffet Posts by NUS Zone" value={filters.zone} onChange={(event) => onChange({ zone: event.target.value })}>
           <option value="all">All zones</option>
           {zones.map((zone) => <option value={zone.id} key={zone.id}>{zone.name}</option>)}
           <option value="unclear">Location unclear</option>

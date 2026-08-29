@@ -35,7 +35,7 @@ test("ledger is immutable and balance comes from ledger entries", () => {
 test("public profile exposes only public identity fields", () => {
   const database = createDatabase(":memory:");
   const { participant } = completeLaunch(database, createLaunchAssertion(database, identity, firstVisit), firstVisit);
-  const updated = updateParticipantProfile(database, participant.id, { displayName: "Campus Bryan", nusZone: "Kent Ridge" }, firstVisit);
+  const updated = updateParticipantProfile(database, participant.id, { displayName: "Campus Bryan", nusZone: "medicine-kent-ridge" }, firstVisit);
   const visible = publicProfile(database, updated.public_id);
   assert.deepEqual(Object.keys(visible).sort(), ["avatar", "displayName", "publicId", "verificationState"].sort());
   assert.equal(JSON.stringify(visible).includes(identity.email), false);
