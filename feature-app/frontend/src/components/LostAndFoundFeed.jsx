@@ -11,6 +11,7 @@ import {
 } from "../api/lostItemApi.js";
 import CommentThread from "./CommentThread.jsx";
 import ReportControl from "./ReportControl.jsx";
+import FoundItemWorkflow from "./FoundItemWorkflow.jsx";
 
 export const lostItemCategories = ["Electronics", "Wallets & Cards", "Keys", "Bags", "Clothing", "Accessories", "Documents", "Other"];
 export const lostItemZones = [
@@ -100,6 +101,7 @@ export default function LostAndFoundFeed() {
       <div className="lost-item-grid">
         {posts.length ? posts.map((post) => <LostItemCard key={post.id} post={post} />) : <p className="status-message">No published Lost-Item Posts match these filters.</p>}
       </div>
+      <FoundItemWorkflow />
 
       {participant ? <>
         <form id="lost-item-form" className="lost-item-form" onSubmit={submit}>

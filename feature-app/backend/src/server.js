@@ -4,6 +4,7 @@ import { createClock } from "./services/clock.js";
 import { replaySourceFixture } from "./sourceFeeds/telegramFixtureAdapter.js";
 import { createLostItemCipher, DEMO_LOST_ITEM_PRIVATE_DATA_KEY } from "./services/lostItemCrypto.js";
 import { seedLostItemFixtures } from "./services/lostItemFixture.js";
+import { seedCustodyLocation } from "./services/foundItemService.js";
 
 const environment = process.env.NODE_ENV || "development";
 const sourceIdentitySecret = process.env.SOURCE_ID_HASH_SECRET || (environment === "production" ? "" : "fictional-source-fixture-secret");
@@ -15,6 +16,7 @@ if (environment !== "production" && database.prepare("SELECT 1 FROM processed_so
   replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
 }
 if (environment !== "production") seedLostItemFixtures(database, createLostItemCipher(lostItemPrivateDataKey));
+if (environment !== "production") seedCustodyLocation(database);
 const app = createApp({ database, clock, environment, sourceIdentitySecret, lostItemPrivateDataKey });
 const port = Number(process.env.PORT || 3000);
 app.listen(port, "127.0.0.1", () =>

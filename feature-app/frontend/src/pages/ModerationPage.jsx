@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
+import FoundItemModeration from "../components/FoundItemModeration.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
   getContentReports,
@@ -88,6 +89,7 @@ export default function ModerationPage() {
         <p>Review Content Reports and Source Discrepancies, manage author consent, and directly moderate public Comments and Marketplace Listings. Every sensitive decision is recorded.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {status && <p className="action-status" role="status">{status}</p>}
+        <FoundItemModeration />
         <section aria-labelledby="lost-item-review-title">
           <h2 id="lost-item-review-title">Lost-Item Post review</h2>
           {lostItemPosts.length ? <ul className="moderation-list lost-item-review-list">{lostItemPosts.map((post) => {

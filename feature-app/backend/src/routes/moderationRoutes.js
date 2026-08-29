@@ -15,6 +15,15 @@ import {
   listModeratorLostItemPosts,
   reviewLostItemPost,
 } from "../services/lostItemService.js";
+import {
+  arrangeFoundItemHandover,
+  closeFoundItemReport,
+  getModeratorFoundItemPhoto,
+  intakeFoundItem,
+  listCustodyLocations,
+  listModeratorFoundItemReports,
+  reviewFoundItemReport,
+} from "../services/foundItemService.js";
 
 function sendPrivatePhoto(response, photo) {
   response.set({
@@ -75,6 +84,13 @@ export function moderationRoutes({ database, clock, sourceIdentitySecret, lostIt
   router.get("/lost-item-photos/:photoId", (request, response) => {
     sendPrivatePhoto(response, getModeratorLostItemPhoto(database, lostItemCipher, request.params.photoId));
   });
+  router.get("/found-item-reports", (request, response) => response.json({ reports: listModeratorFoundItemReports(database, lostItemCipher, request.query.status || "pending_review") }));
+  router.post("/found-item-reports/:reportId/review", (request, response) => response.json({ review: reviewFoundItemReport(database, request.participant.participant_id, request.params.reportId, request.body || {}, clock.now()) }));
+  router.post("/found-item-reports/:reportId/close", (request, response) => response.json({ closure: closeFoundItemReport(database, request.participant.participant_id, request.params.reportId, request.body || {}, clock.now()) }));
+  router.post("/found-item-reports/:reportId/appointments", (request, response) => response.status(201).json({ appointment: arrangeFoundItemHandover(database, request.participant.participant_id, request.params.reportId, request.body || {}, clock.now()) }));
+  router.post("/found-item-reports/:reportId/intake", (request, response) => response.status(201).json(intakeFoundItem(database, lostItemCipher, request.participant.participant_id, request.params.reportId, request.body || {}, clock.now())));
+  router.get("/custody-locations", (_request, response) => response.json({ locations: listCustodyLocations(database, true) }));
+  router.get("/found-item-report-photos/:photoId", (request, response) => sendPrivatePhoto(response, getModeratorFoundItemPhoto(database, lostItemCipher, request.params.photoId)));
   router.get("/source-discrepancies", (request, response) => {
     response.json({ discrepancies: getSourceDiscrepancies(database, request.query.status || "open") });
   });

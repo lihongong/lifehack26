@@ -15,6 +15,10 @@ async function request(url, options = {}) {
 
 const postPath = (postType, postId) => postType === "lost_item_post"
   ? `/api/lost-item-posts/${encodeURIComponent(postId)}`
+  : postType === "found_item_report"
+    ? `/api/found-item-reports/${encodeURIComponent(postId)}`
+    : postType === "found_item"
+      ? `/api/found-items/${encodeURIComponent(postId)}`
   : `/api/listings/${encodeURIComponent(postId)}`;
 export const getComments = (postId, postType = "marketplace_listing") => request(`${postPath(postType, postId)}/comments`);
 export const createComment = (postId, input, postType = "marketplace_listing") => request(`${postPath(postType, postId)}/comments`, {

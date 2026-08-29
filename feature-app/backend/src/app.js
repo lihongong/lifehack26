@@ -13,6 +13,7 @@ import { moderationRoutes } from "./routes/moderationRoutes.js";
 import { commentRoutes } from "./routes/commentRoutes.js";
 import { reportRoutes } from "./routes/reportRoutes.js";
 import { lostItemRoutes } from "./routes/lostItemRoutes.js";
+import { foundItemRoutes } from "./routes/foundItemRoutes.js";
 import { buffetRoutes } from "./routes/buffetRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { participantMiddleware } from "./middleware/requireParticipant.js";
@@ -60,6 +61,7 @@ export function createApp({
   app.use("/api", commentRoutes({ database, clock }));
   app.use("/api", reportRoutes({ database, clock }));
   app.use("/api", lostItemRoutes({ database, clock, lostItemCipher }));
+  app.use("/api", foundItemRoutes({ database, clock, lostItemCipher }));
   app.use("/api/dev", devRoutes({ database, clock, environment, sourceIdentitySecret, lostItemCipher }));
   if (environment !== "production") app.use("/univus", express.static(mockHomepage));
   app.use(express.static(frontendDist));

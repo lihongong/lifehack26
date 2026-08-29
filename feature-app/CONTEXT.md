@@ -7,7 +7,6 @@ The NUS Community Exchange aggregates time-sensitive community posts and rewards
 The tracer-bullet application currently uses a React and Vite frontend served by a Node and Express backend with SQLite persistence.
 This implementation keeps the current app working while ADR 0004 records the intended production move to Next.js, Vercel, and Supabase.
 `backend/src/app.js` is a side-effect-free application factory so tests can inject an in-memory database, clock, identity adapter, and Platform Operator subject.
-The backend runs every idempotent SQL migration at startup and keeps Participant, session, policy, Gem, Comment, Content Report, notification, privileged-role, moderation, Source Feed, Lost-Item Post, and audit state in SQLite.
 The frontend obtains the private authenticated Participant from `GET /api/auth/session` and uses the returned role to expose only the relevant privileged navigation.
 
 ## Authentication and privileged roles
@@ -30,42 +29,16 @@ Self-directed Marketplace actions are inferred on the server from an internal So
 SQLite triggers reject updates and deletions from the audit log.
 Only the Platform Operator can read the complete audit trail through `/api/operator/audit` and `/operator`.
 
-## Public Comments, Content Reports, and notifications
-
-Every Marketplace Listing exposes a publicly readable one-level Comment thread through `/api/listings/:listingId/comments` and the Marketplace Listing card.
-Comment creation and editing require an authenticated Participant with a completed public profile and current policy acceptance for Comments.
-Author deletion requires authentication and ownership but deliberately does not require renewed policy acceptance.
-An author-deleted parent remains as a body-cleared placeholder while replies or unresolved Content Reports require continuity.
-SQLite triggers independently reject reply-to-reply persistence, while public Comment read models expose only public Participant IDs and display names.
-Obvious email addresses and phone numbers return a contact-detail confirmation response before publication, and the frontend requires an explicit public-sharing confirmation.
-
-Authenticated Participants can submit Content Reports for Marketplace Listings and Comments using fraud, safety, privacy, or staleness categories.
-Report submission atomically captures sanitized evidence without creating a Gem Ledger entry.
-Report evidence and reporter identity remain retention-governed operational data rather than immutable data.
-Report resolutions record an immutable terminal outcome and required Moderator reason without copying the reported evidence into the immutable record.
-Each report can independently terminate as hidden, already unavailable, or dismissed, even when another report or direct moderation already changed the target.
-
-Marketplace Listing and Comment visibility mutations are transaction-neutral so direct moderation and report resolution can compose them inside one transaction with audit and notification writes.
-Moderators can directly hide Comments through `/api/moderation/comments/:commentId` and can resolve the queue exposed by `/api/moderation/reports`.
-Replies, direct Comment moderation, and report outcomes create private in-app notifications available through `/api/me/notifications` and the Participant profile.
-
 ## Source Feed ingestion and consent
 
 Marketplace Listings are persisted from versioned Telegram-style fixtures rather than a hard-coded application array.
 Fixture replay uses an allowlist, an injected clock, and a private source-identity hashing secret, and it never reads a Telegram token or opens a network connection.
-The fixture adapter accepts representative Telegram message text and applies a deterministic rule-based Marketplace parser with no AI or network dependency.
-The parser recognizes labeled fields first, then controlled title, whole-SGD price, description, and four-category fallbacks; ambiguous or invalid messages become Source Discrepancies.
-Contact-like text and source-message identity fields are removed before normalized content or discrepancy candidates are persisted.
 The live adapter boundary remains disabled until a Platform Operator records per-feed written permission, approves the privacy review, and explicitly enables live ingestion.
 Revoking either approval disables live ingestion automatically.
 
 Processed update identifiers and non-identifying deletion tombstones are immutable.
 Duplicate updates are idempotent, rate-limited updates remain retryable without advancing the feed cursor, and updates older than the configured window become Source Discrepancies.
 Monotonic source edits and deletions propagate automatically, while stale, divergent, or otherwise conflicting updates wait for a Moderator to apply the source version or retain the stored version with a reason.
-Unparseable messages expose only safe candidate fields to a Moderator, who may correct and publish them through the same Marketplace Listing validator.
-Marketplace Listings expire publicly exactly 30 days after the latest applied source create or edit, while normalized synchronization state remains available and a later source edit reactivates the Listing.
-Public Marketplace responses expose `sourceTime`, `expiresAt`, and an explicit scoped `attributionState`, with `updatedAt` retained as an alias for `sourceTime`.
-The Marketplace frontend refreshes every 30 seconds so an expired Listing disappears without a manual reload.
 
 A Moderator records author consent separately from Source Feed permission, with independent public display-name and contact scopes and a private evidence reference.
 Public Marketplace responses omit source identifiers, author identity, and contact data unless active scoped consent permits the relevant attribution.
@@ -85,30 +58,26 @@ Approved aliases map as follows: ERC to UTown; SRC and UCC to Museum/UCC; EA to 
 The undirected edges are UTown-Museum/UCC, UTown-CDE, Museum/UCC-CDE, Museum/UCC-Central, Museum/UCC-FASS, CDE-Central, CDE-Business, Central-FASS, Central-Business, Central-Computing, Central-Science, FASS-Business, Business-Computing, Business-PGP, Computing-PGP, Computing-Science, PGP-Science, PGP-Medicine/Kent Ridge MRT, and Science-Medicine/Kent Ridge MRT.
 The graph is an implementation inference for Nearby Zone behavior, not an official walking-time claim, and the public issue #7 filter does not include adjacent zones.
 
-## Participant Lost-Item Posts
+## Found-Item custody and rewards
 
-Authenticated Participants with a completed profile and current posting policy acceptance can submit Lost-Item Posts with a controlled category, Singapore lost date, NUS Zone, private original description, Private Identifying Detail data, and up to three optional photos.
-Submissions remain private in `pending_review` until a Moderator writes a separate contact-free public description and approves any safe subset of sanitized photos.
-JPEG, PNG, and WebP uploads are magic-content checked, bounded to 5 MB and 12 megapixels, orientation-corrected, and re-encoded as metadata-free WebP before persistence; malformed, animated, mismatched, or otherwise unsafe requests fail atomically.
+Found-Item Reports use the same controlled property categories, NUS Zones, encrypted private-data boundary, and sanitized image pipeline as Lost-Item Posts.
+Participant submissions remain private until Moderator approval creates a separate contact-free public description and approved photo subset.
+Approved reports may receive a private, revisioned handover appointment only when the Platform Operator has approved the custody procedure, recorded its private evidence reference, explicitly enabled custody, and kept at least one Custody Location active.
+Deactivating the final active Custody Location or revoking procedure approval disables custody automatically without altering immutable appointment snapshots.
 
-Original descriptions and Private Identifying Detail data are encrypted together with AES-256-GCM using revision-associated data.
-Sanitized photo bytes are also encrypted at rest, and `LOST_ITEM_PRIVATE_DATA_KEY` is a separate base64-encoded 32-byte deployment key that is mandatory in production.
-Public projections expose only the controlled category, lost date, public NUS Zone, Moderator-sanitized description, approved photo metadata and URLs, publication time, and fixture marker.
-They never expose the Participant identity, original text, Private Identifying Detail data, rejected photos, filenames, or encryption metadata.
-
-Participants can replace complete pending or rejected submissions using an expected revision, while published posts are locked.
-Withdrawal is available without renewed policy acceptance and immediately removes the Lost-Item Post, approved photos, Comments, and Content Report target from public access while retaining encrypted Operational Records and immutable review history.
-Lost-Item Comments and Content Reports share the existing one-reply-level, contact confirmation, moderation, evidence, and notification behavior.
-Non-production startup and reset create exactly one fictional published Lost-Item Post and one encrypted pending fixture; fixture Participants receive no privileged role.
+The existing Moderator role acts as Custodian for this tracer bullet.
+Only server-recorded physical intake creates a Found Item and an exactly-once 20-Gem `FOUND_ITEM_HANDOVER` ledger entry linked to its originating Found-Item Report.
+Intake atomically snapshots encrypted private evidence and condition notes, retains all sanitized photos privately, publishes only the intake-approved subset, marks the report received, and moves its public Comment thread and open Content Reports to the Found Item.
+Withdrawal, rejection, approval, arranged handover, abandonment, and other closure never award Gems.
+Found Items expose the controlled condition value publicly, while Participant identity, original text, Private Identifying Details, custody evidence, appointment details, location instructions, and condition notes remain private.
 
 ## Development and verification
 
-Non-production uNivUS launches support fixed `operator`, `moderator`, `participant`, and `reporter` demo identities through the `x-demo-identity` request header.
+Non-production uNivUS launches support fixed `operator`, `moderator`, and `participant` demo identities through the `x-demo-identity` request header.
 Production rejects the mock adapter and never accepts demo identity selection.
-Playwright starts the app with an in-memory database and the mock Operator's stable subject configured for repeatable role, session-revocation, Comment, and Content Report tests.
-The mobile project uses Playwright's Pixel 7 Chromium profile because the frozen WebKit runtime available on macOS 14 arm64 crashes before application startup.
+Playwright starts the app with an in-memory database and the mock Operator's stable subject configured for repeatable role and session-revocation tests.
 Non-production startup and reset replay the fictional baseline Marketplace fixture, while production starts with an empty disabled Source Feed.
-Run `npm run replay:source-fixtures` to verify the baseline fixture or append an allowlisted fixture name such as `consent-lifecycle` or `marketplace-unparseable`.
+Run `npm run replay:source-fixtures` to verify the baseline fixture or append an allowlisted fixture name such as `consent-lifecycle`.
 Run `npm test`, `npm run build`, and `npm run test:e2e` from this directory before merging a change.
 
 ## Issue workflow

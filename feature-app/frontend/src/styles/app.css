@@ -619,6 +619,14 @@ select {
 .private-review-panel p { margin: 5px 0 12px; color: #e1d4c2; line-height: 1.5; }
 .private-review-panel p:last-child { margin-bottom: 0; }
 .lost-item-review-list textarea { border-radius: 9px; background: #171d2b; color: #f8f8f8; padding: 10px; font: inherit; resize: vertical; }
+.found-item-workflow { display: grid; gap: 16px; margin-top: 34px; padding-top: 28px; border-top: 1px solid #344057; }
+.found-search { margin-top: 2px; }
+.found-property-card { border-color: #38584c; }
+.found-property-card .status-badge { background: #173a2b; color: #a8e6bc; }
+.reward-note { padding: 10px; border: 1px solid #466c3d; border-radius: 9px; background: #182b19; color: #bde9a9 !important; font-weight: 800; }
+.found-custody-list h3 { margin: 5px 0 0; color: var(--heading); }
+.privileged-form textarea { width: 100%; border: 1px solid #3b465d; border-radius: 9px; background: #171d2b; color: #f8f8f8; padding: 10px; font: inherit; resize: vertical; }
+.privileged-form select { border: 1px solid #3b465d; background: #171d2b; appearance: auto; }
 @media (min-width: 431px) {
   body {
     padding: 22px 0;

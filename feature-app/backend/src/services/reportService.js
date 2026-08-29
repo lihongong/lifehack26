@@ -7,6 +7,7 @@ import { withImmediateTransaction } from "../db/database.js";
 import { hashSourceAuthor } from "../sourceFeeds/sourceFeedDomain.js";
 import { requireVisibleCommentPost } from "./commentService.js";
 import { hideReportedLostItemPost, lostItemEvidence } from "./lostItemService.js";
+import { foundPropertyEvidence, hideFoundProperty } from "./foundItemService.js";
 
 const categories = new Set(["fraud", "safety", "privacy", "staleness"]);
 
@@ -173,6 +174,16 @@ const targetHandlers = Object.freeze({
       return hideReportedLostItemPost(database, actorId, report.target_id, reason, now);
     },
     moderatedMessage: "Your Lost-Item Post was hidden by a Moderator.",
+  }),
+  found_item_report: Object.freeze({
+    evidence(database, targetId) { return foundPropertyEvidence(database, "found_item_report", targetId); },
+    hide(database, actorId, report, reason, now) { return hideFoundProperty(database, actorId, "found_item_report", report.target_id, reason, now); },
+    moderatedMessage: "Your Found-Item Report was hidden by a Moderator.",
+  }),
+  found_item: Object.freeze({
+    evidence(database, targetId) { return foundPropertyEvidence(database, "found_item", targetId); },
+    hide(database, actorId, report, reason, now) { return hideFoundProperty(database, actorId, "found_item", report.target_id, reason, now); },
+    moderatedMessage: "The Found Item created from your report was hidden by a Moderator.",
   }),
   comment: Object.freeze({
     evidence: commentEvidence,

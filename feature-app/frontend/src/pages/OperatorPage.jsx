@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { enrollModerator, getAuditLog, getModerators, getSourceFeeds, removeModerator, updateSourceFeedGates } from "../api/privilegeApi.js";
+import CustodyControls from "../components/CustodyControls.jsx";
 
 export default function OperatorPage() {
   const { participant, loading } = useAuth();
@@ -44,6 +45,8 @@ export default function OperatorPage() {
         <p>Enroll existing Participants, revoke privileged sessions, and inspect immutable sensitive-action records.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {status && <p className="action-status" role="status">{status}</p>}
+
+        <CustodyControls onChanged={refresh} />
 
         <form className="privileged-form" onSubmit={async (event) => {
           event.preventDefault(); setError(""); setStatus("");

@@ -97,7 +97,7 @@ export default function ProfilePage() {
         <ul className="ledger">
           {ledger.map((entry) => (
             <li key={entry.id}>
-              <span>Daily login award · {entry.singaporeDate}</span>
+              <span>{entry.reason === "FOUND_ITEM_HANDOVER" ? "Verified Found-Item handover reward" : "Daily login award"} · {entry.singaporeDate}</span>
               <strong>+{entry.amount}</strong>
             </li>
           ))}

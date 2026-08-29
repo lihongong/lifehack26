@@ -4,9 +4,12 @@ import { findListings } from "./listingsService.js";
 import { addNotification } from "./notificationService.js";
 import { withImmediateTransaction } from "../db/database.js";
 import { getPublicLostItemPost } from "./lostItemService.js";
+import { getPublicFoundItem, getPublicFoundItemReport } from "./foundItemService.js";
 
 const marketplacePostType = "marketplace_listing";
 const lostItemPostType = "lost_item_post";
+const foundItemReportType = "found_item_report";
+const foundItemType = "found_item";
 
 function error(message, status) {
   return Object.assign(new Error(message), { status });
@@ -20,6 +23,14 @@ export function requireVisibleCommentPost(database, postType, postId, now) {
   if (postType === lostItemPostType) {
     const post = getPublicLostItemPost(database, postId);
     if (post) return post;
+  }
+  if (postType === foundItemReportType) {
+    const report = getPublicFoundItemReport(database, postId);
+    if (report) return report;
+  }
+  if (postType === foundItemType) {
+    const item = getPublicFoundItem(database, postId);
+    if (item) return item;
   }
   throw error("Comment post not found.", 404);
 }
