@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { demoListings } from "../data/demoListings.js";
-import { hiddenListingIds, setListingVisibility } from "./moderationService.js";
+import { hiddenListingIds, setCommentVisibility, setListingVisibility } from "./moderationService.js";
 import { addNotification } from "./notificationService.js";
 import { recordAudit, validateReason } from "./privilegeService.js";
 
@@ -127,13 +127,7 @@ function hideReportedComment(database, actorId, report, now) {
   if (!comment || comment.deleted_at || comment.hidden || hiddenListingIds(database).has(comment?.post_id)) {
     return { outcome: "already_unavailable", authorParticipantId: comment?.author_participant_id || null };
   }
-  database.prepare(`
-    INSERT INTO comment_moderation (comment_id, hidden, updated_by_participant_id, updated_at)
-    VALUES (?, 1, ?, ?)
-    ON CONFLICT(comment_id) DO UPDATE SET hidden = 1,
-      updated_by_participant_id = excluded.updated_by_participant_id,
-      updated_at = excluded.updated_at
-  `).run(report.target_id, actorId, now.toISOString());
+  setCommentVisibility(database, actorId, report.target_id, true, now);
   return { outcome: "hidden", authorParticipantId: comment.author_participant_id };
 }
 

@@ -25,6 +25,16 @@ export function setListingVisibility(database, actorId, listingId, hidden, reaso
   `).run(listingId, hidden ? 1 : 0, reason, actorId, now.toISOString());
 }
 
+export function setCommentVisibility(database, actorId, commentId, hidden, now) {
+  database.prepare(`
+    INSERT INTO comment_moderation (comment_id, hidden, updated_by_participant_id, updated_at)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(comment_id) DO UPDATE SET hidden = excluded.hidden,
+      updated_by_participant_id = excluded.updated_by_participant_id,
+      updated_at = excluded.updated_at
+  `).run(commentId, hidden ? 1 : 0, actorId, now.toISOString());
+}
+
 export function moderateListing(database, actor, listingId, hidden, reasonInput, now) {
   if (typeof hidden !== "boolean") throw Object.assign(new Error("Hidden must be true or false."), { status: 422 });
   const reason = validateReason(reasonInput);
@@ -67,13 +77,7 @@ export function moderateComment(database, actor, commentId, hidden, reasonInput,
   }
   database.exec("BEGIN IMMEDIATE");
   try {
-    database.prepare(`
-      INSERT INTO comment_moderation (comment_id, hidden, updated_by_participant_id, updated_at)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(comment_id) DO UPDATE SET hidden = excluded.hidden,
-        updated_by_participant_id = excluded.updated_by_participant_id,
-        updated_at = excluded.updated_at
-    `).run(commentId, hidden ? 1 : 0, actor.participant_id, now.toISOString());
+    setCommentVisibility(database, actor.participant_id, commentId, hidden, now);
     recordAudit(database, {
       eventType: hidden ? "comment_hidden" : "comment_restored",
       actorId: actor.participant_id,
