@@ -1,37 +1,32 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { demoListings } from "../backend/src/data/demoListings.js";
 import { findListings } from "../backend/src/services/listingsService.js";
+import { createDatabase } from "../backend/src/db/database.js";
+import { replaySourceFixture } from "../backend/src/sourceFeeds/telegramFixtureAdapter.js";
 
-test("all fixtures are fictional and include provenance", () =>
-  assert.ok(
-    demoListings.every(
-      (item) =>
-        item.fictional &&
-        item.source &&
-        item.sourceUrl &&
-        item.updatedAt &&
-        item.imageUrl &&
-        item.imageAlt &&
-        item.contacts?.whatsapp &&
-        item.contacts?.telegram &&
-        ["whatsapp", "telegram"].includes(item.preferredContact),
-    ),
-  ));
-test("search is case-insensitive across listing fields", () => {
-  assert.equal(findListings({ query: "CALCULATOR" }).length, 1);
-  assert.equal(findListings({ query: "transport" }).length, 1);
-});
-test("category and sorting filters are deterministic", () => {
-  assert.equal(findListings({ category: "Study" }).length, 1);
+function withListings(run) {
+  const database = createDatabase(":memory:");
+  replaySourceFixture(database, "marketplace-baseline", { identitySecret: "fictional-source-fixture-secret" });
+  try { return run(database); } finally { database.close(); }
+}
+
+test("all replayed fixtures are fictional and include safe public provenance", () => withListings((database) =>
+  assert.ok(findListings(database).every((item) => item.fictional && item.source && item.updatedAt && item.imageUrl && item.imageAlt && !("sourceUrl" in item))),
+));
+test("search is case-insensitive across listing fields", () => withListings((database) => {
+  assert.equal(findListings(database, { query: "CALCULATOR" }).length, 1);
+  assert.equal(findListings(database, { query: "transport" }).length, 1);
+}));
+test("category and sorting filters are deterministic", () => withListings((database) => {
+  assert.equal(findListings(database, { category: "Study" }).length, 1);
   assert.deepEqual(
-    findListings({ sort: "price" }).map(({ price }) => price),
+    findListings(database, { sort: "price" }).map(({ price }) => price),
     [12, 18, 75, 120],
   );
-});
-test("unknown filters safely use public defaults", () =>
-  assert.equal(findListings({ category: "Unknown", sort: "unknown" }).length, demoListings.length));
-test("no-match searches return an empty result", () =>
-  assert.deepEqual(findListings({ query: "does-not-exist" }), []));
-test("internal source identity is never returned publicly", () =>
-  assert.ok(findListings().every((listing) => !("ownerSubject" in listing))));
+}));
+test("unknown filters safely use public defaults", () => withListings((database) =>
+  assert.equal(findListings(database, { category: "Unknown", sort: "unknown" }).length, 4)));
+test("no-match searches return an empty result", () => withListings((database) =>
+  assert.deepEqual(findListings(database, { query: "does-not-exist" }), [])));
+test("internal source identity is never returned publicly", () => withListings((database) =>
+  assert.ok(findListings(database).every((listing) => !("authorKeyHash" in listing) && !("externalAuthorId" in listing)))));

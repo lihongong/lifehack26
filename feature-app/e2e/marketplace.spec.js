@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+test.beforeEach(async ({ request }) => { await request.post("/api/dev/reset"); });
 test("anonymous visitor can browse and filter Marketplace", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Marketplace listings" })).toBeVisible();
@@ -28,9 +29,8 @@ test("public controls are keyboard accessible and profile handoff is available",
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus")).toBeVisible();
   await expect(page.getByRole("link", { name: /View original seller/ })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: /WhatsApp/ }).first()).toHaveAttribute("href", /^https:\/\/wa\.me\/0000000000/);
-  await expect(page.getByRole("link", { name: /Telegram/ }).first()).toHaveAttribute("href", "https://t.me/nus_exchange_demo_unavailable");
-  await expect(page.locator(".listing-card").first().getByRole("link", { name: /WhatsApp|Telegram/ })).toHaveCount(1);
+  await expect(page.getByText("Author attribution withheld")).toHaveCount(4);
+  await expect(page.getByRole("link", { name: /WhatsApp|Telegram/ })).toHaveCount(0);
 });
 
 test("listing image has an accessible fallback", async ({ page }) => {

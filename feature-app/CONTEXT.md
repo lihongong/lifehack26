@@ -7,7 +7,7 @@ The NUS Community Exchange aggregates time-sensitive community posts and rewards
 The tracer-bullet application currently uses a React and Vite frontend served by a Node and Express backend with SQLite persistence.
 This implementation keeps the current app working while ADR 0004 records the intended production move to Next.js, Vercel, and Supabase.
 `backend/src/app.js` is a side-effect-free application factory so tests can inject an in-memory database, clock, identity adapter, and Platform Operator subject.
-The backend runs every idempotent SQL migration at startup and keeps Participant, session, policy, Gem, privileged-role, moderation, and audit state in SQLite.
+The backend runs every idempotent SQL migration at startup and keeps Participant, session, policy, Gem, privileged-role, moderation, Source Feed, and audit state in SQLite.
 The frontend obtains the private authenticated Participant from `GET /api/auth/session` and uses the returned role to expose only the relevant privileged navigation.
 
 ## Authentication and privileged roles
@@ -30,11 +30,29 @@ Self-directed Marketplace actions are inferred on the server from an internal So
 SQLite triggers reject updates and deletions from the audit log.
 Only the Platform Operator can read the complete audit trail through `/api/operator/audit` and `/operator`.
 
+## Source Feed ingestion and consent
+
+Marketplace Listings are persisted from versioned Telegram-style fixtures rather than a hard-coded application array.
+Fixture replay uses an allowlist, an injected clock, and a private source-identity hashing secret, and it never reads a Telegram token or opens a network connection.
+The live adapter boundary remains disabled until a Platform Operator records per-feed written permission, approves the privacy review, and explicitly enables live ingestion.
+Revoking either approval disables live ingestion automatically.
+
+Processed update identifiers and non-identifying deletion tombstones are immutable.
+Duplicate updates are idempotent, rate-limited updates remain retryable without advancing the feed cursor, and updates older than the configured window become Source Discrepancies.
+Monotonic source edits and deletions propagate automatically, while stale, divergent, or otherwise conflicting updates wait for a Moderator to apply the source version or retain the stored version with a reason.
+
+A Moderator records author consent separately from Source Feed permission, with independent public display-name and contact scopes and a private evidence reference.
+Public Marketplace responses omit source identifiers, author identity, and contact data unless active scoped consent permits the relevant attribution.
+Consent withdrawal synchronously removes imported content, scrubs stored identity, contact, and evidence fields, redacts staged discrepancy content, and leaves only non-identifying operational records.
+Gate, consent, and discrepancy decisions are written to the immutable Platform Operator audit trail.
+
 ## Development and verification
 
 Non-production uNivUS launches support fixed `operator`, `moderator`, and `participant` demo identities through the `x-demo-identity` request header.
 Production rejects the mock adapter and never accepts demo identity selection.
 Playwright starts the app with an in-memory database and the mock Operator's stable subject configured for repeatable role and session-revocation tests.
+Non-production startup and reset replay the fictional baseline Marketplace fixture, while production starts with an empty disabled Source Feed.
+Run `npm run replay:source-fixtures` to verify the baseline fixture or append an allowlisted fixture name such as `consent-lifecycle`.
 Run `npm test`, `npm run build`, and `npm run test:e2e` from this directory before merging a change.
 
 ## Issue workflow

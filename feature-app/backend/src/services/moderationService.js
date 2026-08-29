@@ -1,7 +1,6 @@
-import { demoListings } from "../data/demoListings.js";
 import { recordAudit, validateReason } from "./privilegeService.js";
-
-const publicListing = ({ ownerSubject: _ownerSubject, ...listing }) => listing;
+import { findListings } from "./listingsService.js";
+import { hashSourceAuthor } from "../sourceFeeds/sourceFeedDomain.js";
 
 export function hiddenListingIds(database) {
   return new Set(database.prepare("SELECT listing_id FROM marketplace_moderation WHERE hidden = 1").all().map(({ listing_id }) => listing_id));
@@ -9,16 +8,17 @@ export function hiddenListingIds(database) {
 
 export function moderatorListings(database) {
   const states = new Map(database.prepare("SELECT listing_id, hidden, reason, updated_at AS updatedAt FROM marketplace_moderation").all().map((row) => [row.listing_id, row]));
-  return demoListings.map((listing) => {
+  return findListings(database, {}, new Set(), { includeInternal: true }).map((listing) => {
     const state = states.get(listing.id);
-    return { ...publicListing(listing), hidden: Boolean(state?.hidden), moderationReason: state?.reason || null, moderatedAt: state?.updatedAt || null };
+    const { authorKeyHash: _authorKeyHash, ...visible } = listing;
+    return { ...visible, hidden: Boolean(state?.hidden), moderationReason: state?.reason || null, moderatedAt: state?.updatedAt || null };
   });
 }
 
-export function moderateListing(database, actor, listingId, hidden, reasonInput, now) {
+export function moderateListing(database, actor, listingId, hidden, reasonInput, now, identitySecret) {
   if (typeof hidden !== "boolean") throw Object.assign(new Error("Hidden must be true or false."), { status: 422 });
   const reason = validateReason(reasonInput);
-  const listing = demoListings.find(({ id }) => id === listingId);
+  const listing = findListings(database, {}, new Set(), { includeInternal: true }).find(({ id }) => id === listingId);
   if (!listing) throw Object.assign(new Error("Marketplace Listing not found."), { status: 404 });
   const current = database.prepare("SELECT hidden FROM marketplace_moderation WHERE listing_id = ?").get(listingId);
   if (Boolean(current?.hidden) === hidden) throw Object.assign(new Error(`Marketplace Listing is already ${hidden ? "hidden" : "visible"}.`), { status: 409 });
@@ -36,7 +36,7 @@ export function moderateListing(database, actor, listingId, hidden, reasonInput,
       targetType: "marketplace_listing",
       targetId: listingId,
       reason,
-      selfDirected: listing.ownerSubject === actor.external_subject,
+      selfDirected: listing.authorKeyHash === hashSourceAuthor("telegram-marketplace-demo", actor.external_subject, identitySecret),
     }, now);
     database.exec("COMMIT");
   } catch (error) {

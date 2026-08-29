@@ -20,7 +20,14 @@ const backendRoot = fileURLToPath(new URL("..", import.meta.url));
 const frontendDist = join(backendRoot, "../frontend/dist");
 const mockHomepage = join(backendRoot, "../../uNivUS homepage");
 
-export function createApp({ database = createDatabase(), clock = createClock(), environment = process.env.NODE_ENV || "development", univusAdapter = createUnivusAdapter(environment), platformOperatorSubject = process.env.PLATFORM_OPERATOR_SUBJECT || "" } = {}) {
+export function createApp({
+  database = createDatabase(),
+  clock = createClock(),
+  environment = process.env.NODE_ENV || "development",
+  univusAdapter = createUnivusAdapter(environment),
+  platformOperatorSubject = process.env.PLATFORM_OPERATOR_SUBJECT || "",
+  sourceIdentitySecret = process.env.SOURCE_ID_HASH_SECRET || (environment === "production" ? "" : "fictional-source-fixture-secret"),
+} = {}) {
   const app = express();
   app.disable("x-powered-by");
   app.use(express.json({ limit: "16kb" }));
@@ -32,8 +39,8 @@ export function createApp({ database = createDatabase(), clock = createClock(), 
   app.use("/api", policyRoutes({ database, clock }));
   app.use("/api/protected-actions", protectedActionRoutes({ database }));
   app.use("/api/operator", privilegeRoutes({ database, clock }));
-  app.use("/api/moderation", moderationRoutes({ database, clock }));
-  app.use("/api/dev", devRoutes({ database, clock, environment }));
+  app.use("/api/moderation", moderationRoutes({ database, clock, sourceIdentitySecret }));
+  app.use("/api/dev", devRoutes({ database, clock, environment, sourceIdentitySecret }));
   if (environment !== "production") app.use("/univus", express.static(mockHomepage));
   app.use(express.static(frontendDist));
   app.get("*splat", (_request, response) => response.sendFile(join(frontendDist, "index.html")));
