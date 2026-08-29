@@ -19,7 +19,7 @@ test("anonymous visitor can browse and filter Marketplace", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "TI-84 Plus calculator" })).toBeVisible();
   await expect(page.getByText("1 listing")).toBeVisible();
   await Promise.all([page.waitForURL("**/buffets"), page.getByRole("link", { name: "Buffets" }).click()]);
-  await expect(page.getByRole("heading", { name: "Buffets" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fresh Buffet Posts" })).toBeVisible();
   await Promise.all([page.waitForURL("**/lost-and-found"), page.getByRole("link", { name: "Lost & Found" }).click()]);
   await expect(page.getByRole("heading", { name: "Lost & Found" })).toBeVisible();
 });

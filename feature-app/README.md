@@ -22,6 +22,17 @@ Set `PLATFORM_OPERATOR_SUBJECT` to the stable uNivUS subject allowed to bootstra
 Without that deployment setting, all authenticated people remain Participants.
 Set `SOURCE_ID_HASH_SECRET` in production before processing any Source Feed author identifier.
 
+## Public Buffet feed
+
+Anonymous visitors can browse fictional active Buffet Posts at `/buffets` and filter them by search text, exact NUS Zone, unclear location, and freshness.
+Posts expire at a stated collection deadline or use a two-hour fallback from their source time.
+The browser refreshes the feed every 30 seconds.
+
+The public endpoint is `GET /api/buffets?query=&zone=&freshness=`, where freshness is `active`, `30`, or `60` and zone is `all`, `unclear`, or a canonical zone ID.
+The response includes the `nus-zones-v1` static aliases and adjacency graph for later Nearby Zone features.
+
+For a manual smoke test, open `/buffets` without signing in, search for `vegetarian`, filter Science and Location unclear, compare the three freshness options, and verify every card shows either Collect by or Estimated expiry.
+
 ## Protected community actions
 
 Marketplace, Buffets, Lost & Found, active policy documents, and public profiles remain publicly readable. Posting, Comments, claims, alerts, and Redemptions require an authenticated Participant who has accepted the policy versions currently required for that action.
