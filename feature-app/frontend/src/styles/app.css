@@ -36,17 +36,29 @@ body {
 }
 .profile-button {
   border: 0;
-  border-radius: 50%;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
+  min-width: 0;
+  min-height: 40px;
+  max-width: 124px;
+  padding: 5px 10px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   background: var(--orange);
   color: #090909;
   text-decoration: none;
 }
+.profile-button > svg { flex: 0 0 auto; }
+.profile-button-copy { min-width: 0; display: grid; line-height: 1.05; }
+.profile-button-copy small { font-size: 8px; font-weight: 850; letter-spacing: .5px; text-transform: uppercase; }
+.profile-button-copy strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.profile-button-icon { width: 34px; min-height: 34px; padding: 0; border-radius: 50%; display: grid; place-items: center; }
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .privileged-link { color: #d9e1f1; font-size: 11px; font-weight: 750; text-decoration: none; }
+@media (max-width: 359px) {
+  .profile-button { padding-inline: 9px; }
+  .profile-button-copy:not(.is-incomplete) strong { display: none; }
+}
 .welcome {
   padding: 25px 22px 28px;
   background: var(--orange);
