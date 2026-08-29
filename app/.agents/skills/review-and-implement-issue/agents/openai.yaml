@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review and Implement Issue"
+  short_description: "Adversarially review and implement a plan"
+  default_prompt: "Use $review-and-implement-issue to critique and implement this prepared issue plan."

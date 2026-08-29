@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prepare Issue Workspace"
+  short_description: "Capture an issue and repository context"
+  default_prompt: "Use $prepare-issue-workspace to prepare artifacts for GitHub issue #2."

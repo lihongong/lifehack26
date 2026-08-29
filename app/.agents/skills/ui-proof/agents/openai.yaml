@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI Proof"
+  short_description: "Capture trustworthy UI before-and-after proof"
+  default_prompt: "Use $ui-proof to capture before-and-after evidence for this UI change."

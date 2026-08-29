@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan Issue Workspace"
+  short_description: "Plan feature changes and commit checkpoints"
+  default_prompt: "Use $plan-issue-workspace to create plan.md for this prepared issue workspace."
