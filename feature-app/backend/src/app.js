@@ -12,22 +12,27 @@ import { privilegeRoutes } from "./routes/privilegeRoutes.js";
 import { moderationRoutes } from "./routes/moderationRoutes.js";
 import { commentRoutes } from "./routes/commentRoutes.js";
 import { reportRoutes } from "./routes/reportRoutes.js";
+import { buffetRoutes } from "./routes/buffetRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { participantMiddleware } from "./middleware/requireParticipant.js";
 import { createDatabase } from "./db/database.js";
 import { createClock } from "./services/clock.js";
 import { createUnivusAdapter } from "./integrations/univusAdapter.js";
+import { createDemoBuffetPosts } from "./data/demoBuffetPosts.js";
 
 const backendRoot = fileURLToPath(new URL("..", import.meta.url));
 const frontendDist = join(backendRoot, "../frontend/dist");
 const mockHomepage = join(backendRoot, "../../uNivUS homepage");
 
-export function createApp({ database = createDatabase(), clock = createClock(), environment = process.env.NODE_ENV || "development", univusAdapter = createUnivusAdapter(environment), platformOperatorSubject = process.env.PLATFORM_OPERATOR_SUBJECT || "" } = {}) {
+export function createApp({ database = createDatabase(), clock = createClock(), environment = process.env.NODE_ENV || "development", univusAdapter = createUnivusAdapter(environment), platformOperatorSubject = process.env.PLATFORM_OPERATOR_SUBJECT || "", buffetPosts, buffetAnchor } = {}) {
   const app = express();
+  const configuredAnchor = new Date(buffetAnchor || process.env.BUFFET_DEMO_ANCHOR || clock.now());
+  const anchoredBuffetPosts = buffetPosts || createDemoBuffetPosts(Number.isNaN(configuredAnchor.getTime()) ? clock.now() : configuredAnchor);
   app.disable("x-powered-by");
   app.use(express.json({ limit: "16kb" }));
   app.use(participantMiddleware({ database, clock }));
   app.use("/api/listings", listingsRoutes({ database }));
+  app.use("/api/buffets", buffetRoutes({ posts: anchoredBuffetPosts, clock }));
   app.use("/api/integrations", integrationRoutes({ database, clock, univusAdapter }));
   app.use("/api/auth", authRoutes({ database, clock, environment, platformOperatorSubject }));
   app.use("/api", profileRoutes({ database, clock }));

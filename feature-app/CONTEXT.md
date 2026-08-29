@@ -49,6 +49,19 @@ Marketplace Listing and Comment visibility mutations are transaction-neutral so 
 Moderators can directly hide Comments through `/api/moderation/comments/:commentId` and can resolve the queue exposed by `/api/moderation/reports`.
 Replies, direct Comment moderation, and report outcomes create private in-app notifications available through `/api/me/notifications` and the Participant profile.
 
+## Public Buffet feed and NUS Zones
+
+The anonymous Buffet feed uses fictional posts anchored once at application startup and served through `GET /api/buffets`.
+Posts expire at their stated collection deadline or exactly two hours after their source time when no deadline is stated.
+The public feed supports text search, exact-zone filtering, `Location unclear`, and Active, 30-minute, or 60-minute freshness filters.
+Ambiguous locations remain visible under All zones and Location unclear but never match a canonical NUS Zone.
+The frontend refreshes the feed every 30 seconds so newly expired posts disappear without authentication.
+
+The static graph version is `nus-zones-v1` and contains UTown, Museum/UCC, CDE, Central, FASS, Business, Computing, PGP, Science, and Medicine/Kent Ridge MRT.
+Approved aliases map as follows: ERC to UTown; SRC and UCC to Museum/UCC; EA to CDE; YIH and CLB to Central; AS5 to FASS; BIZ2 to Business; COM2 and COM3 to Computing; PGPR to PGP; LT27 and S17 to Science; and YLL, NUH, and Kent Ridge MRT to Medicine/Kent Ridge MRT.
+The undirected edges are UTown-Museum/UCC, UTown-CDE, Museum/UCC-CDE, Museum/UCC-Central, Museum/UCC-FASS, CDE-Central, CDE-Business, Central-FASS, Central-Business, Central-Computing, Central-Science, FASS-Business, Business-Computing, Business-PGP, Computing-PGP, Computing-Science, PGP-Science, PGP-Medicine/Kent Ridge MRT, and Science-Medicine/Kent Ridge MRT.
+The graph is an implementation inference for Nearby Zone behavior, not an official walking-time claim, and the public issue #7 filter does not include adjacent zones.
+
 ## Development and verification
 
 Non-production uNivUS launches support fixed `operator`, `moderator`, and `participant` demo identities through the `x-demo-identity` request header.
