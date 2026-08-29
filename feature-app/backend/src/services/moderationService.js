@@ -95,8 +95,15 @@ export function moderatorComments(database, now = new Date()) {
     findListings(database, {}, new Set(), { includeInternal: true, includeExpired: true, now })
       .map(({ id, title }) => [id, title]),
   );
+  const lostItemLabels = new Map(database.prepare(`
+    SELECT p.id, p.category, p.lost_date AS lostDate, r.public_description AS description
+    FROM lost_item_posts p
+    LEFT JOIN lost_item_reviews r ON r.post_id = p.id AND r.revision = p.revision AND r.decision = 'publish'
+  `).all().map((post) => [post.id, `${post.category} lost on ${post.lostDate}`]));
+  const foundReportLabels = new Map(database.prepare("SELECT id, category, found_date AS foundDate FROM found_item_reports").all().map((post) => [post.id, `${post.category} found on ${post.foundDate}`]));
+  const foundItemLabels = new Map(database.prepare("SELECT id, category, found_date AS foundDate FROM found_items").all().map((item) => [item.id, `${item.category} received from ${item.foundDate}`]));
   return database.prepare(`
-    SELECT c.id, c.post_id AS postId, c.body, c.created_at AS createdAt,
+    SELECT c.id, c.post_type AS postType, c.post_id AS postId, c.body, c.created_at AS createdAt,
       p.public_id AS authorPublicId, p.display_name AS authorDisplayName,
       COALESCE(cm.hidden, 0) AS hidden
     FROM comments c
@@ -107,6 +114,12 @@ export function moderatorComments(database, now = new Date()) {
   `).all().map((comment) => ({
     ...comment,
     hidden: Boolean(comment.hidden),
-    listingTitle: listingTitles.get(comment.postId) || "Unknown Marketplace Listing",
+    listingTitle: comment.postType === "lost_item_post"
+      ? lostItemLabels.get(comment.postId) || "Unknown Lost-Item Post"
+      : comment.postType === "found_item_report"
+        ? foundReportLabels.get(comment.postId) || "Unknown Found-Item Report"
+        : comment.postType === "found_item"
+          ? foundItemLabels.get(comment.postId) || "Unknown Found Item"
+          : listingTitles.get(comment.postId) || "Unknown Marketplace Listing",
   }));
 }

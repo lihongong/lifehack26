@@ -3,6 +3,13 @@ import { requireParticipant } from "../middleware/requireParticipant.js";
 import { requireRole } from "../middleware/requireRole.js";
 import { enrollModerator, getAuditLog, listModerators, removeModerator } from "../services/privilegeService.js";
 import { listSourceFeeds, updateSourceFeedGates } from "../services/sourceFeedService.js";
+import {
+  createCustodyLocation,
+  getCustodySettings,
+  listCustodyLocations,
+  updateCustodyLocation,
+  updateCustodySettings,
+} from "../services/foundItemService.js";
 
 export function privilegeRoutes({ database, clock }) {
   const router = Router();
@@ -29,5 +36,10 @@ export function privilegeRoutes({ database, clock }) {
     );
     response.json({ feed });
   });
+  router.get("/custody-settings", (_request, response) => response.json({ settings: getCustodySettings(database) }));
+  router.patch("/custody-settings", (request, response) => response.json({ settings: updateCustodySettings(database, request.participant.participant_id, request.body || {}, clock.now()) }));
+  router.get("/custody-locations", (_request, response) => response.json({ locations: listCustodyLocations(database) }));
+  router.post("/custody-locations", (request, response) => response.status(201).json({ location: createCustodyLocation(database, request.participant.participant_id, request.body || {}, clock.now()) }));
+  router.patch("/custody-locations/:locationId", (request, response) => response.json({ location: updateCustodyLocation(database, request.participant.participant_id, request.params.locationId, request.body || {}, clock.now()) }));
   return router;
 }

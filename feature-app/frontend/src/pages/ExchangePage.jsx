@@ -2,7 +2,7 @@ import AppHeader from "../components/AppHeader.jsx";
 import FeatureTabs from "../components/FeatureTabs.jsx";
 import BuffetFeed from "../components/BuffetFeed.jsx";
 import MarketplaceFeed from "../components/MarketplaceFeed.jsx";
-import PlaceholderView from "../components/PlaceholderView.jsx";
+import LostAndFoundFeed from "../components/LostAndFoundFeed.jsx";
 const routes = { "/buffets": "Buffets", "/lost-and-found": "Lost & Found" };
 export default function ExchangePage() {
   const active = routes[window.location.pathname] || "Marketplace";
@@ -23,14 +23,9 @@ export default function ExchangePage() {
         <MarketplaceFeed />
       ) : active === "Buffets" ? (
         <BuffetFeed />
-      ) : (
-        <PlaceholderView
-          title={active}
-          description="A safe public Lost & Found feed is coming soon."
-        />
-      )}
+      ) : <LostAndFoundFeed />}
       <footer>
-        <span>All listings are fictional demo data.</span>
+        <span>Fixture records are marked as fictional.</span>
         <span>Private features use your uNivUS session.</span>
       </footer>
     </main>

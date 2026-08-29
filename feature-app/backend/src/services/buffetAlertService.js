@@ -7,6 +7,11 @@ import { recordAudit, validateReason } from "./privilegeService.js";
 
 export const DEMO_BUFFET_FEED_ID = "demo-buffet-v1";
 const canonicalZoneIds = new Set(nusZones.map(({ id }) => id));
+const legacyProfileZones = new Map([
+  ["Kent Ridge", "medicine-kent-ridge"],
+  ["Bukit Timah", null],
+  ["Outram", null],
+]);
 const internalPostId = (feedId, sourcePostId) => `${feedId}:${sourcePostId}`;
 
 function persistedPost(row) {
@@ -85,7 +90,8 @@ export function updateAlertPreference(database, participantId, { nusZone, enable
 }
 
 export function updateProfileZone(database, participantId, zoneInput, now, { deliver = true } = {}) {
-  const zone = zoneInput || null;
+  const requestedZone = zoneInput || null;
+  const zone = legacyProfileZones.has(requestedZone) ? legacyProfileZones.get(requestedZone) : requestedZone;
   if (zone && !canonicalZoneIds.has(zone)) throw Object.assign(new Error("Invalid NUS Zone."), { status: 422 });
   const participant = database.prepare("SELECT nus_zone, buffet_alerts_enabled FROM participants WHERE id = ?").get(participantId);
   if (participant.buffet_alerts_enabled && zone && zone !== participant.nus_zone) {

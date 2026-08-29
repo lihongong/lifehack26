@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
+import FoundItemModeration from "../components/FoundItemModeration.jsx";
 import BuffetReviewPanel from "../components/BuffetReviewPanel.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
   getContentReports,
   getModerationComments,
   getModerationListings,
+  getModerationLostItemPosts,
   getSourceAuthorConsents,
   getSourceDiscrepancies,
   moderateComment,
   moderateListing,
   recordSourceAuthorConsent,
+  reviewLostItemPost,
   resolveContentReport,
   resolveSourceDiscrepancy,
   withdrawSourceAuthorConsent,
@@ -26,6 +29,8 @@ export default function ModerationPage() {
   const [listings, setListings] = useState([]);
   const [reports, setReports] = useState([]);
   const [comments, setComments] = useState([]);
+  const [lostItemPosts, setLostItemPosts] = useState([]);
+  const [lostItemReviews, setLostItemReviews] = useState({});
   const [discrepancies, setDiscrepancies] = useState([]);
   const [consents, setConsents] = useState([]);
   const [consentForm, setConsentForm] = useState(emptyConsent);
@@ -36,18 +41,25 @@ export default function ModerationPage() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const refresh = async () => {
-    const [listingData, reportData, commentData, discrepancyData, consentData] = await Promise.all([
+    const [listingData, reportData, commentData, discrepancyData, consentData, lostItemData] = await Promise.all([
       getModerationListings(),
       getContentReports(),
       getModerationComments(),
       getSourceDiscrepancies(),
       getSourceAuthorConsents(feedId),
+      getModerationLostItemPosts(),
     ]);
     setListings(listingData.listings);
     setReports(reportData.reports);
     setComments(commentData.comments);
     setDiscrepancies(discrepancyData.discrepancies);
     setConsents(consentData.consents);
+    setLostItemPosts(lostItemData.posts);
+    setLostItemReviews((current) => {
+      const next = { ...current };
+      for (const post of lostItemData.posts) next[post.id] ||= { publicDescription: "", approvedPhotoIds: post.photos.map(({ id }) => id), reason: "" };
+      return next;
+    });
     setCorrections((current) => {
       const next = { ...current };
       for (const discrepancy of discrepancyData.discrepancies) {
@@ -78,6 +90,30 @@ export default function ModerationPage() {
         <p>Review Content Reports and Source Discrepancies, manage author consent, and directly moderate public Comments and Marketplace Listings. Every sensitive decision is recorded.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {status && <p className="action-status" role="status">{status}</p>}
+        <FoundItemModeration />
+        <section aria-labelledby="lost-item-review-title">
+          <h2 id="lost-item-review-title">Lost-Item Post review</h2>
+          {lostItemPosts.length ? <ul className="moderation-list lost-item-review-list">{lostItemPosts.map((post) => {
+            const review = lostItemReviews[post.id] || { publicDescription: "", approvedPhotoIds: [], reason: "" };
+            const updateReview = (changes) => setLostItemReviews((current) => ({ ...current, [post.id]: { ...review, ...changes } }));
+            const submitReview = async (decision) => {
+              setError(""); setStatus("");
+              try {
+                await reviewLostItemPost(post.id, { revision: post.revision, decision, publicDescription: review.publicDescription, approvedPhotoIds: review.approvedPhotoIds, reason: review.reason });
+                setStatus(decision === "publish" ? "Sanitized Lost-Item Post published." : "Lost-Item Post rejected for Participant revision.");
+                await refresh();
+              } catch (caught) { setError(caught.message); }
+            };
+            return <li key={post.id}>
+              <div className="review-heading"><strong>{post.category} · {post.lostDate}</strong><span>{post.nusZone.name} · Revision {post.revision}</span></div>
+              <section className="private-review-panel" aria-label="Private Participant submission"><strong>Original description — private</strong><p>{post.description}</p><strong>Private Identifying Details — never publish</strong><p>{post.privateIdentifyingDetails}</p></section>
+              {post.photos.length ? <fieldset className="moderator-photo-grid"><legend>Approve a safe subset</legend>{post.photos.map((photo) => <label key={photo.id}><input type="checkbox" checked={review.approvedPhotoIds.includes(photo.id)} onChange={(event) => updateReview({ approvedPhotoIds: event.target.checked ? [...review.approvedPhotoIds, photo.id] : review.approvedPhotoIds.filter((id) => id !== photo.id) })} /><img src={photo.url} alt="Sanitized private Lost-Item photo awaiting visual review" /></label>)}</fieldset> : <p>No submitted photos. Publication without photos is allowed.</p>}
+              <label>Sanitized public description<textarea required minLength="10" maxLength="1200" rows="4" value={review.publicDescription} onChange={(event) => updateReview({ publicDescription: event.target.value })} /></label>
+              <label>Immutable review reason<input required minLength="3" maxLength="500" value={review.reason} onChange={(event) => updateReview({ reason: event.target.value })} /></label>
+              <div className="decision-row"><button className="primary-action" type="button" onClick={() => submitReview("publish")}>Publish sanitized post</button><button className="danger-action" type="button" onClick={() => submitReview("reject")}>Reject submission</button></div>
+            </li>;
+          })}</ul> : <p>No Lost-Item Posts pending review.</p>}
+        </section>
         <BuffetReviewPanel />
         <section aria-labelledby="content-reports-title">
           <h2 id="content-reports-title">Content Reports</h2>

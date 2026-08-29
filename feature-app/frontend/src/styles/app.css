@@ -589,6 +589,69 @@ select {
 .audit-log time { color: #8996ad; font-size: 10px; }
 .audit-log p { margin: 0; color: #c9d2e3; font-size: 11px; }
 .self-badge { padding: 4px 7px; border-radius: 8px; background: #4b321c; color: #ffd090 !important; font-weight: 750; }
+.lost-item-grid { display: grid; gap: 14px; }
+.date-filters label { display: grid; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 750; }
+.date-filters input { width: 100%; border: 1px solid #3b465d; }
+.lost-item-gallery { display: grid; grid-auto-flow: column; grid-auto-columns: 100%; overflow-x: auto; scroll-snap-type: x mandatory; background: #1a2130; }
+.lost-item-gallery > img,
+.lost-item-gallery > .listing-image { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; scroll-snap-align: start; }
+.lost-item-card .fictional-note { margin: 0; }
+.lost-item-facts { display: grid; gap: 7px; margin: 14px 0; }
+.lost-item-facts span { display: flex; align-items: center; gap: 7px; color: #bdc8dd; font-size: 11px; }
+.lost-item-facts svg { color: #91a9ff; }
+.publication-time { display: block; margin-top: 12px; color: #8794aa; font-size: 9px; }
+.lost-item-form { display: grid; gap: 14px; margin-top: 30px; padding: 18px; border: 1px solid #38445a; border-radius: 16px; background: linear-gradient(145deg, #17202e, #111722); }
+.lost-item-form h2,
+.my-lost-items h2 { margin: 3px 0 7px; color: var(--heading); font-size: 20px; }
+.lost-item-form > div > p:last-child { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.lost-item-form > label { display: grid; gap: 7px; color: #d2dbea; font-size: 11px; font-weight: 750; }
+.lost-item-form small { color: #8794aa; font-weight: 500; line-height: 1.4; }
+.lost-item-form input,
+.lost-item-form textarea { width: 100%; border: 1px solid #3b465d; border-radius: 9px; background: #0d131e; color: #f8f8f8; padding: 10px; font: inherit; }
+.lost-item-form input[type="file"] { height: auto; }
+.lost-item-form textarea { resize: vertical; }
+.lost-item-form-actions,
+.management-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lost-item-form-actions .secondary-action,
+.management-actions .secondary-action { margin: 0; }
+.retained-photos,
+.moderator-photo-grid { margin: 0; padding: 12px; border: 1px solid #3b465d; border-radius: 11px; }
+.retained-photos legend,
+.moderator-photo-grid legend { color: #c8d2e5; font-size: 11px; font-weight: 750; }
+.retained-photos label,
+.moderator-photo-grid label { display: inline-grid; gap: 5px; width: 30%; margin: 5px; }
+.retained-photos input,
+.moderator-photo-grid input { width: 18px; height: 18px; }
+.retained-photos img,
+.moderator-photo-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+.my-lost-items { margin-top: 28px; }
+.my-lost-items ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.my-lost-items li { display: grid; gap: 10px; padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: #141a26; }
+.my-lost-items li > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--heading); font-size: 12px; }
+.my-lost-items p { margin: 0; color: #bac5d9; font-size: 11px; line-height: 1.45; }
+.my-lost-items small { color: #8490a6; }
+.status-badge { padding: 5px 8px; border-radius: 8px; background: #2b3548; color: #b9c6de; font-size: 9px; text-transform: capitalize; }
+.status-published { background: #173626; color: #9be0b1; }
+.status-rejected { background: #3a2420; color: #ffc0b0; }
+.status-withdrawn { background: #292929; color: #aaa; }
+.rejection-reason { color: #ffb2a3 !important; }
+.lost-item-sign-in { margin-top: 25px; padding: 18px; border: 1px solid #3d4a61; border-radius: 15px; background: #171e2c; }
+.lost-item-sign-in h3 { margin: 0 0 7px; color: var(--heading); }
+.lost-item-sign-in p { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.lost-item-sign-in a { color: #a9bbff; font-size: 12px; font-weight: 750; }
+.private-review-panel { padding: 12px; border: 1px solid #6d5137; border-radius: 10px; background: #271f18; }
+.private-review-panel strong { color: #ffd09f; font-size: 10px; text-transform: uppercase; }
+.private-review-panel p { margin: 5px 0 12px; color: #e1d4c2; line-height: 1.5; }
+.private-review-panel p:last-child { margin-bottom: 0; }
+.lost-item-review-list textarea { border-radius: 9px; background: #171d2b; color: #f8f8f8; padding: 10px; font: inherit; resize: vertical; }
+.found-item-workflow { display: grid; gap: 16px; margin-top: 34px; padding-top: 28px; border-top: 1px solid #344057; }
+.found-search { margin-top: 2px; }
+.found-property-card { border-color: #38584c; }
+.found-property-card .status-badge { background: #173a2b; color: #a8e6bc; }
+.reward-note { padding: 10px; border: 1px solid #466c3d; border-radius: 9px; background: #182b19; color: #bde9a9 !important; font-weight: 800; }
+.found-custody-list h3 { margin: 5px 0 0; color: var(--heading); }
+.privileged-form textarea { width: 100%; border: 1px solid #3b465d; border-radius: 9px; background: #171d2b; color: #f8f8f8; padding: 10px; font: inherit; resize: vertical; }
+.privileged-form select { border: 1px solid #3b465d; background: #171d2b; appearance: auto; }
 @media (min-width: 431px) {
   body {
     padding: 22px 0;

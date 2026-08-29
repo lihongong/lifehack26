@@ -5,7 +5,9 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { createComment, deleteComment, editComment, getComments } from "../api/commentApi.js";
 import ReportControl from "./ReportControl.jsx";
 
-export default function CommentThread({ listing }) {
+export default function CommentThread({ listing, post: providedPost, postType = "marketplace_listing", label }) {
+  const post = providedPost || listing;
+  const postLabel = label || post.title || `${post.category} Lost-Item Post`;
   const { participant } = useAuth();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
@@ -20,7 +22,7 @@ export default function CommentThread({ listing }) {
   const [confirmation, setConfirmation] = useState(null);
 
   const refresh = async () => {
-    const data = await getComments(listing.id);
+    const data = await getComments(post.id, postType);
     setComments(data.comments);
   };
 
@@ -90,7 +92,7 @@ export default function CommentThread({ listing }) {
   };
 
   return (
-    <section className="comment-thread" aria-label={`Comments for ${listing.title}`}>
+    <section className="comment-thread" aria-label={`Comments for ${postLabel}`}>
       <button className="comment-toggle" type="button" aria-expanded={expanded} onClick={open}>
         <MessageCircle size={17} aria-hidden="true" />
         {expanded ? "Hide Comments" : "Show Comments"}
@@ -105,7 +107,8 @@ export default function CommentThread({ listing }) {
                 <CommentItem
                   key={comment.id}
                   comment={comment}
-                  listingId={listing.id}
+                  postId={post.id}
+                  postType={postType}
                   interaction={interaction}
                 />
               ))}
@@ -115,12 +118,12 @@ export default function CommentThread({ listing }) {
             <form className="comment-form" onSubmit={(event) => {
               event.preventDefault();
               submitCommentMutation(
-                (confirmed) => createComment(listing.id, { body, confirmContactDetails: confirmed }),
+                (confirmed) => createComment(post.id, { body, confirmContactDetails: confirmed }, postType),
                 () => setBody(""),
               );
             }}>
-              <label htmlFor={`new-comment-${listing.id}`}>Add a Comment</label>
-              <textarea id={`new-comment-${listing.id}`} required maxLength="1000" value={body} onChange={(event) => setBody(event.target.value)} />
+              <label htmlFor={`new-comment-${post.id}`}>Add a Comment</label>
+              <textarea id={`new-comment-${post.id}`} required maxLength="1000" value={body} onChange={(event) => setBody(event.target.value)} />
               <button className="comment-primary" type="submit" disabled={busy || !body.trim()}>Post Comment</button>
             </form>
           ) : (
@@ -142,7 +145,7 @@ export default function CommentThread({ listing }) {
   );
 }
 
-function CommentItem({ comment, listingId, interaction }) {
+function CommentItem({ comment, postId, postType, interaction }) {
   const {
     participant,
     busy,
@@ -199,7 +202,7 @@ function CommentItem({ comment, listingId, interaction }) {
         <form className="comment-form compact" onSubmit={(event) => {
           event.preventDefault();
           submitCommentMutation(
-            (confirmed) => createComment(listingId, { body: replyBody, parentCommentId: comment.id, confirmContactDetails: confirmed }),
+            (confirmed) => createComment(postId, { body: replyBody, parentCommentId: comment.id, confirmContactDetails: confirmed }, postType),
             () => setReplyingTo(null),
           );
         }}>
@@ -211,7 +214,7 @@ function CommentItem({ comment, listingId, interaction }) {
       {comment.replies?.length > 0 && (
         <ol className="reply-list">
           {comment.replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} listingId={listingId} interaction={interaction} />
+            <CommentItem key={reply.id} comment={reply} postId={postId} postType={postType} interaction={interaction} />
           ))}
         </ol>
       )}

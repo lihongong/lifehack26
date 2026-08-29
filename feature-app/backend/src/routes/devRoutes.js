@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { activatePolicyVersion } from "../services/policyService.js";
 import { replaySourceFixture, sourceFixtureSnapshot } from "../sourceFeeds/telegramFixtureAdapter.js";
+import { seedLostItemFixtures } from "../services/lostItemFixture.js";
+import { seedCustodyLocation } from "../services/foundItemService.js";
 import { ingestBuffetPosts } from "../services/buffetAlertService.js";
 
-export function devRoutes({ database, clock, environment, sourceIdentitySecret, buffetPosts = [] }) {
+export function devRoutes({ database, clock, environment, sourceIdentitySecret, lostItemCipher, buffetPosts = [] }) {
   const router = Router();
   if (environment === "production") return router;
   router.post("/clock", (request, response) => { clock.set(request.body.now); response.json({ now: clock.now().toISOString() }); });
@@ -33,6 +35,24 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
       DROP TRIGGER processed_source_updates_no_delete;
       DROP TRIGGER source_deletion_tombstones_no_update;
       DROP TRIGGER source_deletion_tombstones_no_delete;
+      DROP TRIGGER lost_item_reviews_no_update;
+      DROP TRIGGER lost_item_reviews_no_delete;
+      DROP TRIGGER lost_item_review_photos_no_update;
+      DROP TRIGGER lost_item_review_photos_no_delete;
+      DROP TRIGGER found_item_reviews_no_update;
+      DROP TRIGGER found_item_reviews_no_delete;
+      DROP TRIGGER found_item_review_photos_no_update;
+      DROP TRIGGER found_item_review_photos_no_delete;
+      DROP TRIGGER found_item_closures_no_update;
+      DROP TRIGGER found_item_closures_no_delete;
+      DROP TRIGGER found_item_appointments_no_update;
+      DROP TRIGGER found_item_appointments_no_delete;
+      DROP TRIGGER found_items_no_update;
+      DROP TRIGGER found_items_no_delete;
+      DROP TRIGGER found_item_private_evidence_no_update;
+      DROP TRIGGER found_item_private_evidence_no_delete;
+      DROP TRIGGER found_item_photos_no_update;
+      DROP TRIGGER found_item_photos_no_delete;
       DROP TRIGGER helpful_alert_outcomes_no_update;
       DROP TRIGGER helpful_alert_outcomes_no_delete;
       DROP TRIGGER buffet_review_resolutions_no_update;
@@ -49,6 +69,26 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
       DELETE FROM comment_moderation;
       DELETE FROM comments;
       DELETE FROM audit_log;
+      DELETE FROM found_property_moderation;
+      DELETE FROM found_item_photos;
+      DELETE FROM found_item_private_evidence;
+      DELETE FROM found_items;
+      DELETE FROM found_item_handover_appointments;
+      DELETE FROM found_item_report_closures;
+      DELETE FROM found_item_report_review_photos;
+      DELETE FROM found_item_report_reviews;
+      DELETE FROM found_item_report_photos;
+      DELETE FROM found_item_report_private_payloads;
+      DELETE FROM found_item_reports;
+      DELETE FROM custody_locations;
+      UPDATE custody_settings SET procedure_approved=0,procedure_evidence_reference=NULL,custody_enabled=0,
+        revision=1,updated_by_participant_id=NULL,updated_at='2026-08-29T00:00:00Z';
+      DELETE FROM lost_item_moderation;
+      DELETE FROM lost_item_review_photos;
+      DELETE FROM lost_item_reviews;
+      DELETE FROM lost_item_photos;
+      DELETE FROM lost_item_private_payloads;
+      DELETE FROM lost_item_posts;
       DELETE FROM marketplace_moderation;
       DELETE FROM privileged_roles;
       DELETE FROM marketplace_listings;
@@ -80,6 +120,24 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
       CREATE TRIGGER processed_source_updates_no_delete BEFORE DELETE ON processed_source_updates BEGIN SELECT RAISE(ABORT, 'processed source updates are immutable'); END;
       CREATE TRIGGER source_deletion_tombstones_no_update BEFORE UPDATE ON source_deletion_tombstones BEGIN SELECT RAISE(ABORT, 'source deletion tombstones are immutable'); END;
       CREATE TRIGGER source_deletion_tombstones_no_delete BEFORE DELETE ON source_deletion_tombstones BEGIN SELECT RAISE(ABORT, 'source deletion tombstones are immutable'); END;
+      CREATE TRIGGER lost_item_reviews_no_update BEFORE UPDATE ON lost_item_reviews BEGIN SELECT RAISE(ABORT, 'lost item reviews are immutable'); END;
+      CREATE TRIGGER lost_item_reviews_no_delete BEFORE DELETE ON lost_item_reviews BEGIN SELECT RAISE(ABORT, 'lost item reviews are immutable'); END;
+      CREATE TRIGGER lost_item_review_photos_no_update BEFORE UPDATE ON lost_item_review_photos BEGIN SELECT RAISE(ABORT, 'lost item review photos are immutable'); END;
+      CREATE TRIGGER lost_item_review_photos_no_delete BEFORE DELETE ON lost_item_review_photos BEGIN SELECT RAISE(ABORT, 'lost item review photos are immutable'); END;
+      CREATE TRIGGER found_item_reviews_no_update BEFORE UPDATE ON found_item_report_reviews BEGIN SELECT RAISE(ABORT, 'found item reviews are immutable'); END;
+      CREATE TRIGGER found_item_reviews_no_delete BEFORE DELETE ON found_item_report_reviews BEGIN SELECT RAISE(ABORT, 'found item reviews are immutable'); END;
+      CREATE TRIGGER found_item_review_photos_no_update BEFORE UPDATE ON found_item_report_review_photos BEGIN SELECT RAISE(ABORT, 'found item review photos are immutable'); END;
+      CREATE TRIGGER found_item_review_photos_no_delete BEFORE DELETE ON found_item_report_review_photos BEGIN SELECT RAISE(ABORT, 'found item review photos are immutable'); END;
+      CREATE TRIGGER found_item_closures_no_update BEFORE UPDATE ON found_item_report_closures BEGIN SELECT RAISE(ABORT, 'found item closures are immutable'); END;
+      CREATE TRIGGER found_item_closures_no_delete BEFORE DELETE ON found_item_report_closures BEGIN SELECT RAISE(ABORT, 'found item closures are immutable'); END;
+      CREATE TRIGGER found_item_appointments_no_update BEFORE UPDATE ON found_item_handover_appointments BEGIN SELECT RAISE(ABORT, 'found item appointments are immutable'); END;
+      CREATE TRIGGER found_item_appointments_no_delete BEFORE DELETE ON found_item_handover_appointments BEGIN SELECT RAISE(ABORT, 'found item appointments are immutable'); END;
+      CREATE TRIGGER found_items_no_update BEFORE UPDATE ON found_items BEGIN SELECT RAISE(ABORT, 'found items are immutable'); END;
+      CREATE TRIGGER found_items_no_delete BEFORE DELETE ON found_items BEGIN SELECT RAISE(ABORT, 'found items are immutable'); END;
+      CREATE TRIGGER found_item_private_evidence_no_update BEFORE UPDATE ON found_item_private_evidence BEGIN SELECT RAISE(ABORT, 'found item private evidence is immutable'); END;
+      CREATE TRIGGER found_item_private_evidence_no_delete BEFORE DELETE ON found_item_private_evidence BEGIN SELECT RAISE(ABORT, 'found item private evidence is immutable'); END;
+      CREATE TRIGGER found_item_photos_no_update BEFORE UPDATE ON found_item_photos BEGIN SELECT RAISE(ABORT, 'found item photos are immutable'); END;
+      CREATE TRIGGER found_item_photos_no_delete BEFORE DELETE ON found_item_photos BEGIN SELECT RAISE(ABORT, 'found item photos are immutable'); END;
       CREATE TRIGGER helpful_alert_outcomes_no_update BEFORE UPDATE ON helpful_alert_outcomes BEGIN SELECT RAISE(ABORT, 'Helpful Alert outcomes are immutable'); END;
       CREATE TRIGGER helpful_alert_outcomes_no_delete BEFORE DELETE ON helpful_alert_outcomes BEGIN SELECT RAISE(ABORT, 'Helpful Alert outcomes are immutable'); END;
       CREATE TRIGGER buffet_review_resolutions_no_update BEFORE UPDATE ON buffet_review_resolutions BEGIN SELECT RAISE(ABORT, 'Buffet review resolutions are immutable'); END;
@@ -88,6 +146,8 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
     `);
     clock.set(null);
     replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
+    seedLostItemFixtures(database, lostItemCipher);
+    seedCustodyLocation(database);
     ingestBuffetPosts(database, buffetPosts, clock.now());
     response.status(204).end();
   });
