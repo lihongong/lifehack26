@@ -1,6 +1,8 @@
 import { ImageOff } from "lucide-react";
 import { useState } from "react";
 import { SiTelegram, SiWhatsapp } from "react-icons/si";
+import CommentThread from "./CommentThread.jsx";
+import ReportControl from "./ReportControl.jsx";
 
 function freshness(value) {
   const hours = Math.max(1, Math.round((Date.now() - new Date(value)) / 36e5));
@@ -34,6 +36,8 @@ export default function ListingCard({ listing }) {
             </a>
           </> : <span className="contact-caption">Author attribution withheld</span>}
         </div>
+        <ReportControl targetType="marketplace_listing" targetId={listing.id} label="Report Marketplace Listing" />
+        <CommentThread listing={listing} />
       </div>
     </article>
   );

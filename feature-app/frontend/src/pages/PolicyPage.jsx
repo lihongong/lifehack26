@@ -15,7 +15,8 @@ export default function PolicyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [policiesLoading, setPoliciesLoading] = useState(true);
   const action = searchParams.get("action");
-  const returnTo = searchParams.get("returnTo") === "/profile" ? "/profile" : "/profile";
+  const requestedReturn = searchParams.get("returnTo");
+  const returnTo = ["/", "/profile"].includes(requestedReturn) ? requestedReturn : "/profile";
 
   useEffect(() => {
     if (!participant) return;
@@ -39,7 +40,7 @@ export default function PolicyPage() {
     setStatus("");
     try {
       await acceptPolicies(unaccepted.map(({ id }) => id));
-      const destination = action ? `${returnTo}?retryAction=${encodeURIComponent(action)}` : returnTo;
+      const destination = action && returnTo === "/profile" ? `${returnTo}?retryAction=${encodeURIComponent(action)}` : returnTo;
       navigate(destination, { replace: true });
     } catch (error) {
       setStatus(error.message);

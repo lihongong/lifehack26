@@ -16,3 +16,15 @@ export function createDatabase(
   }
   return database;
 }
+
+export function withImmediateTransaction(database, operation) {
+  database.exec("BEGIN IMMEDIATE");
+  try {
+    const result = operation();
+    database.exec("COMMIT");
+    return result;
+  } catch (error) {
+    database.exec("ROLLBACK");
+    throw error;
+  }
+}

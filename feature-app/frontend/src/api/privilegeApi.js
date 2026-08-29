@@ -13,6 +13,16 @@ export const getSourceFeeds = () => request("/api/operator/source-feeds");
 export const updateSourceFeedGates = (feedId, changes) => request(`/api/operator/source-feeds/${encodeURIComponent(feedId)}/gates`, { method: "PATCH", body: JSON.stringify(changes) });
 export const getModerationListings = () => request("/api/moderation/marketplace");
 export const moderateListing = (listingId, hidden, reason) => request(`/api/moderation/marketplace/${encodeURIComponent(listingId)}`, { method: "PATCH", body: JSON.stringify({ hidden, reason }) });
+export const getContentReports = () => request("/api/moderation/reports");
+export const resolveContentReport = (reportId, outcome, reason) => request(`/api/moderation/reports/${encodeURIComponent(reportId)}`, {
+  method: "PATCH",
+  body: JSON.stringify({ outcome, reason }),
+});
+export const getModerationComments = () => request("/api/moderation/comments");
+export const moderateComment = (commentId, reason) => request(`/api/moderation/comments/${encodeURIComponent(commentId)}`, {
+  method: "PATCH",
+  body: JSON.stringify({ hidden: true, reason }),
+});
 export const getSourceDiscrepancies = (status = "open") => request(`/api/moderation/source-discrepancies?status=${encodeURIComponent(status)}`);
 export const resolveSourceDiscrepancy = (id, decision, reason) => request(`/api/moderation/source-discrepancies/${encodeURIComponent(id)}/resolution`, { method: "POST", body: JSON.stringify({ decision, reason }) });
 export const getSourceAuthorConsents = (feedId) => request(`/api/moderation/source-feeds/${encodeURIComponent(feedId)}/author-consents`);
