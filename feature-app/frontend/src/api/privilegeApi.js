@@ -17,6 +17,8 @@ export const getCustodyLocations = () => request("/api/operator/custody-location
 export const createCustodyLocation = (location) => request("/api/operator/custody-locations", { method: "POST", body: JSON.stringify(location) });
 export const updateCustodyLocation = (id, location) => request(`/api/operator/custody-locations/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(location) });
 export const getModerationListings = () => request("/api/moderation/marketplace");
+export const createManualMarketplaceListing = (listing) => request("/api/moderation/marketplace", { method: "POST", body: JSON.stringify(listing) });
+export const deleteManualMarketplaceListing = (listingId, reason) => request(`/api/moderation/marketplace/${encodeURIComponent(listingId)}`, { method: "DELETE", body: JSON.stringify({ reason }) });
 export const moderateListing = (listingId, hidden, reason) => request(`/api/moderation/marketplace/${encodeURIComponent(listingId)}`, { method: "PATCH", body: JSON.stringify({ hidden, reason }) });
 export const getModerationLostItemPosts = (status = "pending_review") => request(`/api/moderation/lost-item-posts?status=${encodeURIComponent(status)}`);
 export const reviewLostItemPost = (postId, review) => request(`/api/moderation/lost-item-posts/${encodeURIComponent(postId)}/review`, { method: "POST", body: JSON.stringify(review) });

@@ -5,6 +5,8 @@ import FoundItemModeration from "../components/FoundItemModeration.jsx";
 import BuffetReviewPanel from "../components/BuffetReviewPanel.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
+  createManualMarketplaceListing,
+  deleteManualMarketplaceListing,
   getContentReports,
   getModerationComments,
   getModerationListings,
@@ -23,6 +25,7 @@ import {
 const feedId = "telegram-marketplace-demo";
 const categories = ["Study", "Room & Living", "Transport", "Electronics"];
 const emptyConsent = { externalAuthorId: "", displayName: "", contactUrl: "", evidenceReference: "", reason: "", displayNameAllowed: true, contactAllowed: false };
+const emptyManualListing = { title: "", category: "Study", price: "", description: "", imageUrl: "", imageAlt: "", reason: "" };
 
 export default function ModerationPage() {
   const { participant, loading } = useAuth();
@@ -34,6 +37,7 @@ export default function ModerationPage() {
   const [discrepancies, setDiscrepancies] = useState([]);
   const [consents, setConsents] = useState([]);
   const [consentForm, setConsentForm] = useState(emptyConsent);
+  const [manualListing, setManualListing] = useState(emptyManualListing);
   const [withdrawalReasons, setWithdrawalReasons] = useState({});
   const [resolutionReasons, setResolutionReasons] = useState({});
   const [corrections, setCorrections] = useState({});
@@ -161,21 +165,56 @@ export default function ModerationPage() {
             </li>
           ))}</ul>
         ) : <p>No Comments to moderate.</p>}
+        <form className="privileged-form manual-listing-form" onSubmit={async (event) => {
+          event.preventDefault(); setError(""); setStatus("");
+          try {
+            const { listing } = await createManualMarketplaceListing({ ...manualListing, price: Number(manualListing.price) });
+            setManualListing(emptyManualListing);
+            setStatus(`${listing.title} published.`);
+            await refresh();
+          } catch (caught) { setError(caught.message); }
+        }}>
+          <div><p className="eyebrow">MANUAL LISTING</p><h2>Publish a Marketplace Listing</h2></div>
+          <p>This creates a Community Exchange listing without changing Source Feed provenance. It expires after 30 days unless deleted earlier.</p>
+          <label>Listing title<input required minLength="3" maxLength="160" value={manualListing.title} onChange={(event) => setManualListing({ ...manualListing, title: event.target.value })} /></label>
+          <div className="manual-listing-fields">
+            <label>Listing category<select required value={manualListing.category} onChange={(event) => setManualListing({ ...manualListing, category: event.target.value })}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>
+            <label>Whole SGD price<input required type="number" min="0" max="100000" step="1" value={manualListing.price} onChange={(event) => setManualListing({ ...manualListing, price: event.target.value })} /></label>
+          </div>
+          <label>Public description<textarea required minLength="10" maxLength="2000" rows="4" value={manualListing.description} onChange={(event) => setManualListing({ ...manualListing, description: event.target.value })} /></label>
+          <label>HTTPS image URL (optional)<input type="url" maxLength="1000" value={manualListing.imageUrl} onChange={(event) => setManualListing({ ...manualListing, imageUrl: event.target.value })} /></label>
+          <label>Image alternative text (required with image)<input minLength="3" maxLength="300" required={Boolean(manualListing.imageUrl)} value={manualListing.imageAlt} onChange={(event) => setManualListing({ ...manualListing, imageAlt: event.target.value })} /></label>
+          <label>Publication reason<input required minLength="3" maxLength="500" value={manualListing.reason} onChange={(event) => setManualListing({ ...manualListing, reason: event.target.value })} /></label>
+          <button className="primary-action">Publish manual listing</button>
+        </form>
+
         <h2>Direct Marketplace moderation</h2>
         <ul className="moderation-list">{listings.map((listing) => (
           <li key={listing.id} className={listing.hidden ? "is-hidden" : ""}>
-            <div><span className="category">{listing.category}</span><strong>{listing.title}</strong><span>{listing.hidden ? "Hidden" : "Publicly visible"}</span></div>
+            <div><span className="category">{listing.category}</span><strong>{listing.title}</strong><span>{listing.origin === "manual" ? "Manual listing" : "Source Feed listing"} · {listing.hidden ? "Hidden" : "Publicly visible"}</span></div>
             {listing.moderationReason && <p>Last reason: {listing.moderationReason}</p>}
-            <label>Reason<input required minLength="3" maxLength="500" value={reasons[listing.id] || ""} onChange={(event) => setReasons({ ...reasons, [listing.id]: event.target.value })} /></label>
-            <button type="button" className={listing.hidden ? "primary-action" : "danger-action"} onClick={async () => {
-              setError(""); setStatus("");
-              try {
-                await moderateListing(listing.id, !listing.hidden, reasons[listing.id]);
-                setStatus(`${listing.title} ${listing.hidden ? "restored" : "hidden"}.`);
-                setReasons({ ...reasons, [listing.id]: "" });
-                await refresh();
-              } catch (caught) { setError(caught.message); }
-            }}>{listing.hidden ? "Restore listing" : "Hide listing"}</button>
+            {listing.origin === "manual" ? <>
+              <label>Deletion reason<input required minLength="3" maxLength="500" value={reasons[`delete-${listing.id}`] || ""} onChange={(event) => setReasons({ ...reasons, [`delete-${listing.id}`]: event.target.value })} /></label>
+              <button type="button" className="danger-action" onClick={async () => {
+                setError(""); setStatus("");
+                try {
+                  await deleteManualMarketplaceListing(listing.id, reasons[`delete-${listing.id}`]);
+                  setStatus(`${listing.title} deleted.`);
+                  await refresh();
+                } catch (caught) { setError(caught.message); }
+              }}>Delete manual listing</button>
+            </> : <>
+              <label>Reason<input required minLength="3" maxLength="500" value={reasons[listing.id] || ""} onChange={(event) => setReasons({ ...reasons, [listing.id]: event.target.value })} /></label>
+              <button type="button" className={listing.hidden ? "primary-action" : "danger-action"} onClick={async () => {
+                setError(""); setStatus("");
+                try {
+                  await moderateListing(listing.id, !listing.hidden, reasons[listing.id]);
+                  setStatus(`${listing.title} ${listing.hidden ? "restored" : "hidden"}.`);
+                  setReasons({ ...reasons, [listing.id]: "" });
+                  await refresh();
+                } catch (caught) { setError(caught.message); }
+              }}>{listing.hidden ? "Restore listing" : "Hide listing"}</button>
+            </>}
           </li>
         ))}</ul>
 
