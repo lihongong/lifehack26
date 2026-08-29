@@ -29,8 +29,9 @@ test("public controls are keyboard accessible and profile handoff is available",
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus")).toBeVisible();
   await expect(page.getByRole("link", { name: /View original seller/ })).toHaveCount(0);
-  await expect(page.getByText("Author attribution withheld")).toHaveCount(4);
-  await expect(page.getByRole("link", { name: /WhatsApp|Telegram/ })).toHaveCount(0);
+  await expect(page.getByText("Author attribution withheld")).toHaveCount(2);
+  await expect(page.getByRole("link", { name: /Telegram/ })).toHaveCount(2);
+  await expect(page.getByRole("link", { name: /Telegram/ }).first()).toHaveAttribute("href", /t\.me\/nus_demo_/);
 });
 
 test("listing image has an accessible fallback", async ({ page }) => {

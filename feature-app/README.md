@@ -93,6 +93,7 @@ Key discussion and reporting endpoints:
 ## Source Feed fixtures and gates
 
 Marketplace demonstration data is replayed through an allowlisted Telegram-style fixture without a live chat, token, or network request.
+Non-production startup and reset also seed fictional display-name and Telegram-contact consent for the monitor and bike-lock authors, so the public demo includes two working contact buttons while the other authors remain withheld.
 Representative Telegram message text is parsed offline with deterministic labeled-field and controlled-keyword rules for Study, Room & Living, Transport, and Electronics.
 Raw author identity, contact lines, and source-message text are not persisted; contact-like text is removed before normalized Listings or safe discrepancy candidates are stored.
 Replay the deterministic baseline or another bundled scenario with:

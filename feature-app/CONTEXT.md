@@ -42,6 +42,7 @@ Monotonic source edits and deletions propagate automatically, while stale, diver
 
 A Moderator records author consent separately from Source Feed permission, with independent public display-name and contact scopes and a private evidence reference.
 Public Marketplace responses omit source identifiers, author identity, and contact data unless active scoped consent permits the relevant attribution.
+Non-production startup and reset idempotently seed fictional name-and-contact consent for the monitor and bike-lock fixture authors, leaving calculator and lamp attribution withheld; production never receives these demonstration consents.
 Consent withdrawal synchronously removes imported content, scrubs stored identity, contact, and evidence fields, redacts staged discrepancy content, and leaves only non-identifying operational records.
 Gate, consent, and discrepancy decisions are written to the immutable Platform Operator audit trail.
 

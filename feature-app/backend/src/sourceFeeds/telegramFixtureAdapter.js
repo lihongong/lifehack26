@@ -1,7 +1,20 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { normalizeTelegramUpdate } from "./sourceFeedDomain.js";
+import { hashSourceAuthor, normalizeTelegramUpdate, stableId } from "./sourceFeedDomain.js";
 import { ingestSourceUpdate, recordSourceAuthorConsent, withdrawSourceAuthorConsent } from "../services/sourceFeedService.js";
+
+const demoMarketplaceConsents = Object.freeze([
+  Object.freeze({
+    externalAuthorId: "fixture-author-monitor",
+    displayName: "Demo Monitor Seller",
+    contactUrl: "https://t.me/nus_demo_monitor_unavailable",
+  }),
+  Object.freeze({
+    externalAuthorId: "fixture-author-lock",
+    displayName: "Demo Bike-Lock Seller",
+    contactUrl: "https://t.me/nus_demo_bikelock_unavailable",
+  }),
+]);
 
 const fixtureUrls = Object.freeze({
   "marketplace-baseline": new URL("./fixtures/marketplace-baseline.json", import.meta.url),
@@ -53,6 +66,28 @@ export function replaySourceFixture(database, name, { identitySecret, moderatorA
     throw Object.assign(new Error("Fixture step type is unsupported."), { status: 422 });
   }
   return { fixture: name, feedId: fixture.feedId, outcomes };
+}
+
+export function seedDemoMarketplaceConsents(database, identitySecret) {
+  const feedId = "telegram-marketplace-demo";
+  const insert = database.prepare(`
+    INSERT OR IGNORE INTO source_author_consents
+      (id, feed_id, author_key_hash, display_name_allowed, contact_allowed, display_name,
+       contact_url, evidence_reference, active, granted_at)
+    VALUES (?, ?, ?, 1, 1, ?, ?, ?, 1, ?)
+  `);
+  for (const consent of demoMarketplaceConsents) {
+    const authorKeyHash = hashSourceAuthor(feedId, consent.externalAuthorId, identitySecret);
+    insert.run(
+      stableId("consent", feedId, authorKeyHash),
+      feedId,
+      authorKeyHash,
+      consent.displayName,
+      consent.contactUrl,
+      `fictional-preconsent-${consent.externalAuthorId}`,
+      "2026-08-29T00:00:00Z",
+    );
+  }
 }
 
 export function sourceFixtureSnapshot(database) {
