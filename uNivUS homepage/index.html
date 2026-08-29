@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#090909" />
+    <title>uNivUS Hackathon Mockup</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="phone" aria-label="uNivUS app mockup">
+      <header>
+        <div class="status-bar" aria-hidden="true">
+          <span class="status-time">12:41</span>
+          <div class="status-icons">
+            <span class="signal"><i></i><i></i><i></i><i></i></span>
+            <span class="network">5G</span>
+            <span class="battery"><span>27</span></span>
+          </div>
+        </div>
+
+        <div class="brand-bar">
+          <div class="brand" aria-label="uNivUS, Uniting NUS individuals">
+            <div class="brand-name"><span>u</span><b>N</b><span>iv</span><b>U</b><span>S</span></div>
+            <div class="tagline">Uniting NUS individuals</div>
+          </div>
+          <div class="brand-actions" aria-hidden="true">
+            <div class="round-action accessibility-icon">✧<span>◜</span></div>
+            <div class="round-action account-icon">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M6.8 18.5c.4-3.1 2.3-5 5.2-5s4.8 1.9 5.2 5z"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <section class="welcome">
+          <div>
+            <h1>Hi Chew Jia Hui,<br />Bryan</h1>
+            <p>Student</p>
+          </div>
+          <div class="welcome-actions" aria-hidden="true">
+            <div class="scan-icon"><span></span></div>
+            <div class="ecard">eCard</div>
+          </div>
+        </section>
+      </header>
+
+      <section class="explore" aria-labelledby="explore-title">
+        <div class="section-heading">
+          <div class="heading-title">
+            <div class="compass" aria-hidden="true"><span></span></div>
+            <h2 id="explore-title">Explore</h2>
+          </div>
+          <button class="pill-button" type="button" aria-label="Add an app">+ App</button>
+        </div>
+
+        <div class="app-grid">
+          <div class="app-tile">
+            <div class="app-icon canvas-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="23"/><path d="M13 28l15 4-8 8-7-12zm9 18l9-12 4 17-13-5zm14-34l-5 17-9-9 14-8zm8 8l-9 11 17-2-8-9zm-8 14l15 8-11 8-4-16z"/></svg>
+            </div>
+            <span>Canvas</span>
+          </div>
+
+          <div class="app-tile">
+            <div class="app-icon edurec-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><path class="paper" d="M16 14h26l7 8v31H16z"/><path class="fold" d="M42 14v9h8"/><path class="lines" d="M22 29h18M22 35h18M22 41h13"/><path class="pencil" d="M37 48l3-10 12-12 5 5-12 12z"/><path class="cap" d="M10 18l13-7 13 7-13 7z"/><path class="capline" d="M15 22v7c5 3 11 3 16 0v-7"/></svg>
+            </div>
+            <span>EduRec</span>
+          </div>
+
+          <a class="app-tile custom-app" id="custom-app" href="https://example.com" target="_blank" rel="noopener noreferrer">
+            <div class="app-icon custom-icon-frame">
+              <img id="custom-app-icon" src="assets/hackathon-app.svg" alt="" />
+              <span class="icon-fallback" aria-hidden="true">↗</span>
+            </div>
+            <span id="custom-app-name">Hackathon App</span>
+          </a>
+
+          <div class="app-tile">
+            <div class="app-icon exam-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><path d="M12 24l15-12 4 17 10-14 2 16 13-4-10 12 8 10-18-4-8 9-3-13-16 3 9-10z"/><text x="21" y="35">EXAM</text></svg>
+            </div>
+            <span>Exam Results</span>
+          </div>
+
+          <div class="app-tile">
+            <div class="app-icon crowd-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><path d="M9 27c3-12 16-17 26-10 11-6 22 2 20 14 2 11-10 18-20 13-9 7-23 0-21-11-4-1-6-3-5-6z"/><text x="14" y="29">CROWD</text><text x="19" y="38">INSIGHT</text></svg>
+            </div>
+            <span>Crowd Insight</span>
+          </div>
+
+          <div class="app-tile">
+            <div class="app-icon wifi-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><circle cx="28" cy="28" r="21"/><path d="M12 25c11-9 23-9 33 0M17 31c7-6 15-6 22 0M23 37c3-2 7-2 10 0"/><path class="handle" d="M43 43l12 12"/></svg>
+            </div>
+            <span>NUS Wi-Fi<br />Checker</span>
+          </div>
+
+          <div class="app-tile">
+            <div class="app-icon events-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><path d="M12 17h40v38H12z"/><path d="M12 25h40M21 10v14M43 10v14"/><path class="star" d="M32 31l3 7 7 1-5 5 1 7-6-4-6 4 1-7-5-5 7-1z"/></svg>
+            </div>
+            <span>Events</span>
+          </div>
+
+          <div class="app-tile">
+            <div class="app-icon peer-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64"><path d="M32 8l9 9 13-3-3 13 7 10-12 5-4 13-10-8-11 8-4-13-12-5 7-10-3-13 13 3z"/></svg>
+            </div>
+            <span>Peer Student<br />Support</span>
+          </div>
+        </div>
+
+        <div class="pager" aria-hidden="true"><span></span><i></i></div>
+      </section>
+
+      <div class="section-divider"></div>
+
+      <section class="calendar-section" aria-labelledby="calendar-title">
+        <div class="section-heading calendar-heading">
+          <div class="heading-title">
+            <div class="calendar-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 2v6M16 2v6M7 14h3M14 14h3M7 18h3M14 18h3"/></svg>
+            </div>
+            <h2 id="calendar-title">Calendar</h2>
+          </div>
+          <button class="see-more" type="button">See More ›</button>
+        </div>
+
+        <div class="calendar-controls">
+          <span class="chevron">‹</span>
+          <strong>Sat, 29 Aug</strong>
+          <span class="chevron">›</span>
+          <strong class="classes-label">Classes and Exams</strong>
+          <span class="down-chevron">⌄</span>
+        </div>
+        <div class="semester">AY 2026/2027 - Sem 1 | Week 3 | Instructional</div>
+        <div class="empty-card">You have no classes and exams</div>
+      </section>
+
+      <nav class="bottom-nav" aria-label="Primary navigation">
+        <a class="nav-item active" href="#" aria-current="page">
+          <svg viewBox="0 0 28 28"><path d="M3 13L14 3l11 10v12h-8v-8h-6v8H3z"/></svg><span>Home</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 28 28"><rect x="5" y="3" width="18" height="23" rx="2"/><path d="M9 8h10M9 12h10M9 16h10M9 20h7"/></svg><span>Resources</span>
+        </a>
+        <a class="nav-item inbox-item" href="#">
+          <span class="notification-dot"></span><svg viewBox="0 0 28 28"><path d="M3 7h22v16H3zM3 8l11 9L25 8"/></svg><span>Inbox</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 28 28"><rect x="4" y="5" width="20" height="20" rx="2"/><path d="M4 11h20M9 2v6M19 2v6M8 15h3M15 15h5M8 20h3M15 20h5"/></svg><span>Calendar</span>
+        </a>
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 28 28"><circle cx="14" cy="14" r="11"/><path d="M14 12v8M14 8v1"/></svg><span>Emergency</span>
+        </a>
+      </nav>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
