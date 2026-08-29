@@ -24,12 +24,19 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret }
       DROP TRIGGER policy_acceptances_no_delete;
       DROP TRIGGER audit_log_no_update;
       DROP TRIGGER audit_log_no_delete;
+      DROP TRIGGER report_resolutions_no_update;
+      DROP TRIGGER report_resolutions_no_delete;
       DROP TRIGGER gem_ledger_no_update;
       DROP TRIGGER gem_ledger_no_delete;
       DROP TRIGGER processed_source_updates_no_update;
       DROP TRIGGER processed_source_updates_no_delete;
       DROP TRIGGER source_deletion_tombstones_no_update;
       DROP TRIGGER source_deletion_tombstones_no_delete;
+      DELETE FROM report_resolutions;
+      DELETE FROM content_reports;
+      DELETE FROM notifications;
+      DELETE FROM comment_moderation;
+      DELETE FROM comments;
       DELETE FROM audit_log;
       DELETE FROM marketplace_moderation;
       DELETE FROM privileged_roles;
@@ -54,6 +61,8 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret }
       CREATE TRIGGER policy_acceptances_no_delete BEFORE DELETE ON policy_acceptances BEGIN SELECT RAISE(ABORT, 'policy acceptances are immutable'); END;
       CREATE TRIGGER audit_log_no_update BEFORE UPDATE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit_log is immutable'); END;
       CREATE TRIGGER audit_log_no_delete BEFORE DELETE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit_log is immutable'); END;
+      CREATE TRIGGER report_resolutions_no_update BEFORE UPDATE ON report_resolutions BEGIN SELECT RAISE(ABORT, 'report resolutions are immutable'); END;
+      CREATE TRIGGER report_resolutions_no_delete BEFORE DELETE ON report_resolutions BEGIN SELECT RAISE(ABORT, 'report resolutions are immutable'); END;
       CREATE TRIGGER gem_ledger_no_update BEFORE UPDATE ON gem_ledger BEGIN SELECT RAISE(ABORT, 'gem_ledger is immutable'); END;
       CREATE TRIGGER gem_ledger_no_delete BEFORE DELETE ON gem_ledger BEGIN SELECT RAISE(ABORT, 'gem_ledger is immutable'); END;
       CREATE TRIGGER processed_source_updates_no_update BEFORE UPDATE ON processed_source_updates BEGIN SELECT RAISE(ABORT, 'processed source updates are immutable'); END;
