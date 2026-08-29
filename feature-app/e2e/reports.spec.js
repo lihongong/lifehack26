@@ -26,17 +26,24 @@ test("Participant report reaches Moderator review, hides the Comment, and sends 
   await authorCalculator.getByRole("button", { name: "Show Comments" }).click();
   await authorCalculator.getByLabel("Add a Comment").fill("This Comment needs a safety review.");
   await authorCalculator.getByRole("button", { name: "Post Comment" }).click();
+  await expect(authorCalculator.getByText("This Comment needs a safety review.")).toBeVisible();
+  const commentComposer = authorCalculator.getByLabel("Add a Comment");
+  await expect(commentComposer).toHaveValue("");
+  await commentComposer.fill("This second Comment needs direct moderation.");
+  await authorCalculator.getByRole("button", { name: "Post Comment" }).click();
+  await expect(authorCalculator.getByText("This second Comment needs direct moderation.")).toBeVisible();
 
   const reporterContext = await browser.newContext();
   const reporterPage = await reporterContext.newPage();
-  await launchAs(reporterPage, "moderator", "Reporter Robin");
+  await launchAs(reporterPage, "reporter", "Reporter Robin");
   await reporterPage.goto("/");
   const reporterCalculator = reporterPage.locator(".listing-card").filter({ hasText: "TI-84 Plus calculator" });
   await reporterCalculator.getByRole("button", { name: "Show Comments" }).click();
-  await reporterCalculator.getByRole("button", { name: "Report Comment by Author Arden" }).click();
-  await reporterCalculator.getByLabel("Report reason").selectOption("safety");
-  await reporterCalculator.getByRole("button", { name: "Submit Content Report" }).click();
-  await expect(reporterCalculator.getByRole("status")).toContainText("sent to Moderators");
+  const reportedComment = reporterCalculator.locator(".comment-item").filter({ hasText: "This Comment needs a safety review." });
+  await reportedComment.getByRole("button", { name: "Report Comment by Author Arden" }).click();
+  await reportedComment.getByLabel("Report reason").selectOption("safety");
+  await reportedComment.getByRole("button", { name: "Submit Content Report" }).click();
+  await expect(reportedComment.getByRole("status")).toContainText("sent to Moderators");
 
   const moderatorContext = await browser.newContext();
   const moderatorPage = await moderatorContext.newPage();
@@ -55,14 +62,19 @@ test("Participant report reaches Moderator review, hides the Comment, and sends 
   await report.getByRole("button", { name: "Hide content" }).click();
   await expect(moderatorPage.getByRole("status")).toContainText("Content hidden");
 
+  const directComment = moderatorPage.locator(".comment-moderation-list li").filter({ hasText: "This second Comment needs direct moderation." });
+  await directComment.getByLabel("Moderation reason").fill("Direct safety review");
+  await directComment.getByRole("button", { name: "Hide Comment" }).click();
+  await expect(moderatorPage.getByRole("status")).toContainText("Comment hidden");
+
   await reporterPage.goto("/profile");
   await expect(reporterPage.getByText(/Content Report was resolved/)).toBeVisible();
   await page.goto("/");
   const publicCalculator = page.locator(".listing-card").filter({ hasText: "TI-84 Plus calculator" });
   await publicCalculator.getByRole("button", { name: "Show Comments" }).click();
-  await expect(publicCalculator.getByText("Comment hidden by a Moderator.")).toBeVisible();
+  await expect(publicCalculator.getByText("Comment hidden by a Moderator.")).toHaveCount(2);
   await page.goto("/profile");
-  await expect(page.getByText("Your Comment was hidden by a Moderator.")).toBeVisible();
+  await expect(page.getByText("Your Comment was hidden by a Moderator.")).toHaveCount(2);
 
   await operatorContext.close();
   await moderatorContext.close();

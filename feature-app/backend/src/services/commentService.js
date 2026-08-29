@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { demoListings } from "../data/demoListings.js";
 import { hiddenListingIds } from "./moderationService.js";
 import { addNotification } from "./notificationService.js";
+import { withImmediateTransaction } from "../db/database.js";
 
 const marketplacePostType = "marketplace_listing";
 
@@ -111,8 +112,7 @@ export function createMarketplaceComment(database, participant, listingId, input
   }
   const id = randomUUID();
   const timestamp = now.toISOString();
-  database.exec("BEGIN IMMEDIATE");
-  try {
+  withImmediateTransaction(database, () => {
     database.prepare(`
       INSERT INTO comments (
         id, post_type, post_id, parent_comment_id, author_participant_id,
@@ -128,11 +128,7 @@ export function createMarketplaceComment(database, participant, listingId, input
         message: `${participant.display_name} replied to your Comment.`,
       }, now);
     }
-    database.exec("COMMIT");
-  } catch (caught) {
-    database.exec("ROLLBACK");
-    throw caught;
-  }
+  });
   return publicComment(findCommentRow(database, id));
 }
 

@@ -1,6 +1,6 @@
 # Implementation Context for Issue #6
 
-## User outcome
+## Participant outcome
 
 Authenticated Participants can hold accessible public Comment discussions on Marketplace Listings, with at most one reply level.
 Comment authors can edit their own Comments and delete them without destroying the visible thread structure when replies remain.

@@ -16,3 +16,8 @@ export const resolveContentReport = (reportId, outcome, reason) => request(`/api
   method: "PATCH",
   body: JSON.stringify({ outcome, reason }),
 });
+export const getModerationComments = () => request("/api/moderation/comments");
+export const moderateComment = (commentId, reason) => request(`/api/moderation/comments/${encodeURIComponent(commentId)}`, {
+  method: "PATCH",
+  body: JSON.stringify({ hidden: true, reason }),
+});

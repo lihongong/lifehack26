@@ -16,7 +16,7 @@ CREATE INDEX IF NOT EXISTS comments_by_post
 ON comments(post_type, post_id, created_at, id);
 
 CREATE TABLE IF NOT EXISTS comment_moderation (
-  comment_id TEXT PRIMARY KEY REFERENCES comments(id),
+  comment_id TEXT PRIMARY KEY REFERENCES comments(id) ON DELETE CASCADE,
   hidden INTEGER NOT NULL CHECK (hidden IN (0, 1)),
   updated_by_participant_id TEXT NOT NULL REFERENCES participants(id),
   updated_at TEXT NOT NULL

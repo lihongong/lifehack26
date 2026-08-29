@@ -2,19 +2,25 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
-import { getContentReports, getModerationListings, moderateListing, resolveContentReport } from "../api/privilegeApi.js";
+import { getContentReports, getModerationComments, getModerationListings, moderateComment, moderateListing, resolveContentReport } from "../api/privilegeApi.js";
 
 export default function ModerationPage() {
   const { participant, loading } = useAuth();
   const [listings, setListings] = useState([]);
   const [reports, setReports] = useState([]);
+  const [comments, setComments] = useState([]);
   const [reasons, setReasons] = useState({});
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const refresh = async () => {
-    const [listingData, reportData] = await Promise.all([getModerationListings(), getContentReports()]);
+    const [listingData, reportData, commentData] = await Promise.all([
+      getModerationListings(),
+      getContentReports(),
+      getModerationComments(),
+    ]);
     setListings(listingData.listings);
     setReports(reportData.reports);
+    setComments(commentData.comments);
   };
   useEffect(() => {
     if (participant?.role === "moderator") refresh().catch((caught) => setError(caught.message));
@@ -51,6 +57,32 @@ export default function ModerationPage() {
             ))}</ul>
           ) : <p>No open Content Reports.</p>}
         </section>
+        <h2>Direct Comment moderation</h2>
+        {comments.length ? (
+          <ul className="moderation-list comment-moderation-list">{comments.map((comment) => (
+            <li key={comment.id} className={comment.hidden ? "is-hidden" : ""}>
+              <div>
+                <span className="category">{comment.listingTitle}</span>
+                <strong>{comment.authorDisplayName}</strong>
+                <span>{comment.hidden ? "Hidden" : comment.body}</span>
+              </div>
+              {!comment.hidden && (
+                <>
+                  <label>Moderation reason<input required minLength="3" maxLength="500" value={reasons[`comment-${comment.id}`] || ""} onChange={(event) => setReasons({ ...reasons, [`comment-${comment.id}`]: event.target.value })} /></label>
+                  <button className="danger-action" type="button" onClick={async () => {
+                    setError(""); setStatus("");
+                    try {
+                      await moderateComment(comment.id, reasons[`comment-${comment.id}`]);
+                      setStatus("Comment hidden.");
+                      setReasons({ ...reasons, [`comment-${comment.id}`]: "" });
+                      await refresh();
+                    } catch (caught) { setError(caught.message); }
+                  }}>Hide Comment</button>
+                </>
+              )}
+            </li>
+          ))}</ul>
+        ) : <p>No Comments to moderate.</p>}
         <h2>Direct Marketplace moderation</h2>
         <ul className="moderation-list">{listings.map((listing) => (
           <li key={listing.id} className={listing.hidden ? "is-hidden" : ""}>

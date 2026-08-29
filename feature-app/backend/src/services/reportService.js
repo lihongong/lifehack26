@@ -3,6 +3,7 @@ import { demoListings } from "../data/demoListings.js";
 import { hiddenListingIds, setCommentVisibility, setListingVisibility } from "./moderationService.js";
 import { addNotification } from "./notificationService.js";
 import { recordAudit, validateReason } from "./privilegeService.js";
+import { withImmediateTransaction } from "../db/database.js";
 
 const categories = new Set(["fraud", "safety", "privacy", "staleness"]);
 
@@ -10,27 +11,25 @@ function error(message, status) {
   return Object.assign(new Error(message), { status });
 }
 
-function reportEvidence(database, targetType, targetId) {
-  if (targetType === "marketplace_listing") {
-    const listing = demoListings.find(({ id }) => id === targetId);
-    if (!listing || hiddenListingIds(database).has(targetId)) throw error("Reported content not found.", 404);
-    return { postId: listing.id, label: listing.title, text: listing.description };
+function marketplaceListingEvidence(database, targetId) {
+  const listing = demoListings.find(({ id }) => id === targetId);
+  if (!listing || hiddenListingIds(database).has(targetId)) throw error("Reported content not found.", 404);
+  return { postId: listing.id, label: listing.title, text: listing.description };
+}
+
+function commentEvidence(database, targetId) {
+  const comment = database.prepare(`
+    SELECT c.body, c.post_id, c.deleted_at, p.display_name,
+      COALESCE(cm.hidden, 0) AS hidden
+    FROM comments c
+    JOIN participants p ON p.id = c.author_participant_id
+    LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
+    WHERE c.id = ?
+  `).get(targetId);
+  if (!comment || comment.deleted_at || comment.hidden || hiddenListingIds(database).has(comment.post_id)) {
+    throw error("Reported content not found.", 404);
   }
-  if (targetType === "comment") {
-    const comment = database.prepare(`
-      SELECT c.body, c.post_id, c.deleted_at, p.display_name,
-        COALESCE(cm.hidden, 0) AS hidden
-      FROM comments c
-      JOIN participants p ON p.id = c.author_participant_id
-      LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
-      WHERE c.id = ?
-    `).get(targetId);
-    if (!comment || comment.deleted_at || comment.hidden || hiddenListingIds(database).has(comment.post_id)) {
-      throw error("Reported content not found.", 404);
-    }
-    return { postId: comment.post_id, label: `${comment.display_name}'s Comment`, text: comment.body };
-  }
-  throw error("Content Report target type is invalid.", 422);
+  return { postId: comment.post_id, label: `${comment.display_name}'s Comment`, text: comment.body };
 }
 
 function publicSubmittedReport(report) {
@@ -50,9 +49,10 @@ export function createContentReport(database, participant, input, now) {
   const targetType = String(input?.targetType || "");
   const targetId = String(input?.targetId || "");
   const id = randomUUID();
-  database.exec("BEGIN IMMEDIATE");
-  try {
-    const evidence = reportEvidence(database, targetType, targetId);
+  const targetHandler = targetHandlers[targetType];
+  if (!targetHandler) throw error("Content Report target type is invalid.", 422);
+  withImmediateTransaction(database, () => {
+    const evidence = targetHandler.evidence(database, targetId);
     database.prepare(`
       INSERT INTO content_reports (
         id, target_type, target_id, target_post_id, reporter_participant_id,
@@ -69,11 +69,7 @@ export function createContentReport(database, participant, input, now) {
       evidence.text,
       now.toISOString(),
     );
-    database.exec("COMMIT");
-  } catch (caught) {
-    database.exec("ROLLBACK");
-    throw caught;
-  }
+  });
   return publicSubmittedReport(database.prepare("SELECT * FROM content_reports WHERE id = ?").get(id));
 }
 
@@ -116,7 +112,7 @@ function addResolutionNotification(database, participantId, outcome, reportId, n
   }, now);
 }
 
-function hideReportedComment(database, actorId, report, now) {
+function hideReportedComment(database, actorId, report, _reason, now) {
   const comment = database.prepare(`
     SELECT c.author_participant_id, c.deleted_at, c.post_id,
       COALESCE(cm.hidden, 0) AS hidden
@@ -141,6 +137,37 @@ function hideReportedListing(database, actorId, report, reason, now) {
   return { outcome: "hidden", authorParticipantId: author?.id || null };
 }
 
+const targetHandlers = Object.freeze({
+  marketplace_listing: Object.freeze({
+    evidence: marketplaceListingEvidence,
+    hide: hideReportedListing,
+    moderatedMessage: "Your Marketplace Listing was hidden by a Moderator.",
+  }),
+  comment: Object.freeze({
+    evidence: commentEvidence,
+    hide: hideReportedComment,
+    moderatedMessage: "Your Comment was hidden by a Moderator.",
+  }),
+});
+
+function removeUnreferencedDeletedComment(database, report) {
+  if (report.target_type !== "comment") return;
+  const retained = database.prepare(`
+    SELECT 1
+    FROM comments c
+    WHERE c.id = ? AND (
+      c.deleted_at IS NULL
+      OR EXISTS (SELECT 1 FROM comments reply WHERE reply.parent_comment_id = c.id)
+      OR EXISTS (
+        SELECT 1 FROM content_reports cr
+        LEFT JOIN report_resolutions rr ON rr.report_id = cr.id
+        WHERE cr.target_type = 'comment' AND cr.target_id = c.id AND rr.report_id IS NULL
+      )
+    )
+  `).get(report.target_id);
+  if (!retained) database.prepare("DELETE FROM comments WHERE id = ?").run(report.target_id);
+}
+
 export function resolveContentReport(database, actor, reportId, input, now) {
   const requestedOutcome = String(input?.outcome || "");
   if (!new Set(["hidden", "dismissed"]).has(requestedOutcome)) {
@@ -156,14 +183,13 @@ export function resolveContentReport(database, actor, reportId, input, now) {
   if (!report) throw error("Content Report not found.", 404);
   if (report.resolved) throw error("Content Report is already resolved.", 409);
 
-  database.exec("BEGIN IMMEDIATE");
-  try {
+  const targetHandler = targetHandlers[report.target_type];
+  if (!targetHandler) throw error("Content Report target type is invalid.", 422);
+  return withImmediateTransaction(database, () => {
     let outcome = requestedOutcome;
     let authorParticipantId = null;
     if (requestedOutcome === "hidden") {
-      const result = report.target_type === "comment"
-        ? hideReportedComment(database, actor.participant_id, report, now)
-        : hideReportedListing(database, actor.participant_id, report, reason, now);
+      const result = targetHandler.hide(database, actor.participant_id, report, reason, now);
       outcome = result.outcome;
       authorParticipantId = result.authorParticipantId;
     }
@@ -187,15 +213,10 @@ export function resolveContentReport(database, actor, reportId, input, now) {
         type: "comment_moderated",
         targetType: report.target_type,
         targetId: report.target_id,
-        message: report.target_type === "comment"
-          ? "Your Comment was hidden by a Moderator."
-          : "Your Marketplace Listing was hidden by a Moderator.",
+        message: targetHandler.moderatedMessage,
       }, now);
     }
-    database.exec("COMMIT");
+    removeUnreferencedDeletedComment(database, report);
     return { reportId, outcome, reason, createdAt: now.toISOString() };
-  } catch (caught) {
-    database.exec("ROLLBACK");
-    throw caught;
-  }
+  });
 }

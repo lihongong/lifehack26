@@ -23,9 +23,11 @@ Without that deployment setting, all authenticated people remain Participants.
 
 ## Protected community actions
 
-Marketplace, Buffets, Lost & Found, active policy documents, and public profiles remain publicly readable. Posting, Comments, claims, alerts, and Redemptions require an authenticated Participant who has accepted the policy versions currently required for that action.
+Marketplace, Buffets, Lost & Found, active policy documents, and public profiles remain publicly readable.
+Posting, Comments, claims, alerts, and Redemptions require an authenticated Participant who has accepted the policy versions currently required for that action.
 
-The private profile includes demonstration controls for exercising each policy gate and an immutable acceptance history. Policy versions and action mappings are seeded by SQLite migrations; production does not expose policy activation controls.
+The private profile includes demonstration controls for exercising each policy gate and an immutable acceptance history.
+Policy versions and action mappings are seeded by SQLite migrations; production does not expose policy activation controls.
 
 Key policy endpoints:
 
@@ -59,7 +61,7 @@ Obvious email addresses and phone numbers require explicit confirmation before a
 Authenticated Participants can submit a Content Report for a Marketplace Listing or Comment using fraud, safety, privacy, or staleness as the reason category.
 The submission transaction captures sanitized evidence for Moderator review and never awards Gems.
 Report evidence remains subject to operational retention and anonymization procedures, while the Moderator resolution reason and audit event are immutable.
-Moderators can hide reported content, resolve content that is already unavailable, dismiss a report, or directly hide and restore a Comment with a required reason.
+Moderators can hide reported content, resolve content that is already unavailable, dismiss a report, or directly hide a Comment with a required reason.
 
 Replies and moderation outcomes create private in-app notifications on the Participant profile.
 Public Comment payloads expose only the author's public ID and display name.
@@ -76,4 +78,5 @@ Key discussion and reporting endpoints:
 - `PATCH /api/moderation/reports/:reportId`
 - `PATCH /api/moderation/comments/:commentId`
 
-Run verification with `npm test`, `npm run build`, and `npm run test:e2e`. The end-to-end command builds the current frontend before starting Playwright.
+Run verification with `npm test`, `npm run build`, and `npm run test:e2e`.
+The end-to-end command builds the current frontend before starting Playwright.

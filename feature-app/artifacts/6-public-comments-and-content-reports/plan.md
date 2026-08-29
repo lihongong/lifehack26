@@ -12,16 +12,57 @@ Reply recipients, affected content authors, and reporters can see relevant non-p
 
 ## Acceptance mapping
 
-| Requirement | Change | Verification |
-| --- | --- | --- |
-| Authenticated Participants can add Comments and one level of replies to Marketplace Listings. | Add Comment persistence, a Marketplace Comment HTTP interface guarded by Participant authentication, completed public profile, visible-target checks, and the existing `comments` policy requirement, plus an accessible thread/composer on each Marketplace Listing. | Focused HTTP test covers public reads, authentication, incomplete profiles, policy gating, top-level creation, reply creation, private-field exclusion, rejection of a reply to a reply, and direct database rejection of deeper nesting. Playwright covers visible creation and reply behavior. |
-| Authors can edit Comments with an edited marker and delete them with placeholders when replies remain. | Add author-only edit and delete operations, public edit metadata, and tombstone rendering for removed parents or Comments retained by unresolved reports. Policy acceptance gates creation and editing but not deletion. | Focused HTTP test proves ownership checks, both deletion paths, report-retained deletion, and deletion after policy renewal. Playwright proves the edited marker and removed-parent placeholder remain visible with the reply. |
-| Obvious email addresses and phone numbers trigger a warning before submission. | Add reusable obvious-contact detection, server-enforced confirmation, and an accessible UI confirmation step that identifies the detected contact type without echoing private text. | Focused service or HTTP examples cover obvious email, international/local phone shapes, and ordinary text. Playwright proves the first submission warns and only explicit confirmation creates the Comment. |
-| Participants can report posts and Comments for fraud, safety, privacy, or staleness without earning Gems. | Add retention-governed Content Report evidence with an atomically captured sanitized target snapshot and an authenticated report interface for visible Marketplace Listings and Comments, plus report controls in the listing and Comment UI. | Focused HTTP test covers all allowed target and reason types, invalid or hidden targets, snapshot stability after edit/delete, private-field exclusion, and unchanged Gem balance and ledger. Playwright files both a Comment report and the Marketplace Listing report needed by the moderation journey. |
-| Moderators can review and hide reported content with an immutable reason. | Add a Moderator report queue, immutable terminal report resolutions, direct Comment moderation, transaction-neutral content-visibility helpers, and same-transaction target transition, audit, resolution, and notification writes. Reports support hidden, already-unavailable, and dismissed outcomes so duplicate or pre-hidden targets cannot strand open reports. | Focused HTTP test covers role enforcement, required reason, direct Comment hiding, hidden public output, duplicate and pre-hidden report resolution, report-after-edit/delete behavior, atomic rollback, immutable resolution/audit records, and duplicate resolution rejection. Playwright proves the visible report queue and disappearance or placeholder behavior after moderation. |
-| End-to-end tests cover the full report journey. | Add one issue-focused Playwright scenario that launches Participants and a Moderator, accepts policies, creates and reports content, moderates it, and verifies public and private outcomes. | Run the focused scenario on mobile and desktop, then run the complete Playwright suite. |
-| Participants receive non-push reply and moderation notifications. | Add in-app notification persistence, a private notifications endpoint, and a chronological profile notification section. | Focused HTTP test proves recipient scoping and absence of private fields. Playwright verifies reply and moderation notifications for the intended Participants. |
-| Comments are public while protected writes preserve privacy. | Return public display name and public Participant ID only, never email, external subject, private Participant ID, or Ownership Evidence. | HTTP response assertions search serialized bodies for known private values. Existing anonymous Marketplace browsing remains green. |
+### Authenticated Comments and one reply level
+
+The change adds Comment persistence, a Marketplace Comment HTTP interface guarded by Participant authentication, completed public profile, visible-target checks, and the existing `comments` policy requirement.
+It also adds an accessible thread and composer on each Marketplace Listing.
+Focused HTTP tests cover public reads, authentication, policy gating, top-level creation, reply creation, private-field exclusion, rejection of a reply to a reply, and direct database rejection of deeper nesting.
+Playwright covers visible creation and reply behavior.
+
+### Author editing and deletion
+
+The change adds author-only edit and delete operations, public edit metadata, and tombstone rendering for removed parents or Comments temporarily retained by unresolved reports.
+Policy acceptance gates creation and editing but not deletion.
+Focused HTTP tests prove ownership checks, both deletion paths, temporary report retention, cleanup after resolution, and deletion after policy renewal.
+Playwright proves the edited marker and removed-parent placeholder remain visible with the reply.
+
+### Contact-detail warning
+
+The change adds reusable obvious-contact detection, server-enforced confirmation, and an accessible UI confirmation step that identifies the detected contact type without echoing private text.
+Focused HTTP examples cover obvious email, phone, and ordinary-text behavior.
+Playwright proves the first submission warns and only explicit confirmation creates the Comment.
+
+### Content Report submission without Gems
+
+The change adds retention-governed Content Report evidence with an atomically captured sanitized target snapshot and an authenticated report interface for visible Marketplace Listings and Comments.
+It also adds report controls in the Marketplace Listing and Comment UI.
+Focused HTTP tests cover allowed targets and reasons, snapshot stability after edit or deletion, private-field exclusion, and unchanged Gem state.
+Playwright covers visible Comment report submission as part of the full report journey.
+
+### Moderator review and immutable reason
+
+The change adds a Moderator report queue, immutable terminal report resolutions, direct Comment moderation, transaction-neutral content-visibility helpers, and same-transaction target transition, audit, resolution, and notification writes.
+Reports support hidden, already-unavailable, and dismissed outcomes so duplicate or pre-hidden targets cannot strand open reports.
+Focused HTTP tests cover required reasons, direct Comment hiding, hidden public output, duplicate resolution, report-after-edit or deletion behavior, and immutable resolution and audit records.
+Playwright proves the visible report queue, direct Comment moderation control, and public placeholder after moderation.
+
+### Full report journey
+
+One issue-focused Playwright scenario launches distinct Participants and a Moderator, creates and reports a Comment, moderates it, and verifies the public and private outcomes.
+Focused HTTP tests cover the additional lifecycle matrix for Marketplace Listing reports, duplicate reports, evidence stability, and Gem invariance.
+The focused Playwright scenario runs on mobile and desktop before the complete suite.
+
+### Non-push notifications
+
+The change adds in-app notification persistence, a private notifications endpoint, and a chronological profile notification section.
+Focused HTTP tests prove recipient scoping and absence of private fields.
+Playwright verifies reply and moderation notifications for the intended Participants.
+
+### Public privacy boundary
+
+Public responses return only public display names and public Participant IDs.
+HTTP assertions verify that email, external subject, private Participant ID, and Ownership Evidence are absent.
+Existing anonymous Marketplace browsing remains green.
 
 ## Feature changes
 
@@ -113,9 +154,10 @@ Each behavior slice will start with one failing focused test, add the smallest i
 
 - Baseline route: `/`, after `POST /api/dev/reset`, with the seeded Marketplace Listing grid visible.
 - Viewports: Playwright's configured Pixel 7 mobile Chromium project and Desktop Chrome project.
-- Participant path: launch through the mock uNivUS handoff, complete profile, accept current Comment policies, expand a Marketplace Listing thread, submit a warned Comment, reply from a second Participant, edit, delete, report, and inspect notification history.
-- Moderator path: launch and enroll a Moderator, open `/moderation/marketplace`, inspect the captured report evidence, enter an immutable reason, hide the reported target, independently resolve a second report for the same target, and verify the public result.
-- Distinguishing assertions: only one reply level is offered, explicit contact confirmation is required, edited and deleted states are textually announced, captured report evidence does not change after an author edit, report creation does not change Gems, a hidden Comment uses a placeholder, a hidden Marketplace Listing leaves the public feed, duplicate reports reach terminal outcomes, and relevant notifications appear only in the intended private profiles.
+- Participant Comment path: launch through the mock uNivUS handoff, complete a profile, accept current Comment policies, submit a warned Comment, reply from a second Participant, edit, delete, and inspect notification history.
+- Content Report path: create a Comment, submit its Content Report from a distinct Participant session, review and hide it from the Moderator screen, and verify the public placeholder plus private notifications.
+- HTTP lifecycle matrix: prove captured evidence survives edit and deletion, Content Reports do not change Gems, Marketplace Listing reports can hide a listing, and duplicate reports reach terminal outcomes.
+- Distinguishing UI assertions: one reply level is offered, explicit contact confirmation is required, edited and deleted states are announced, report evidence is visible to the Moderator, a hidden Comment uses a placeholder, and relevant notifications appear only in the intended private profiles.
 
 ### Accessibility and UI proof
 

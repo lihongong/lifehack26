@@ -46,7 +46,7 @@ Report resolutions record an immutable terminal outcome and required Moderator r
 Each report can independently terminate as hidden, already unavailable, or dismissed, even when another report or direct moderation already changed the target.
 
 Marketplace Listing and Comment visibility mutations are transaction-neutral so direct moderation and report resolution can compose them inside one transaction with audit and notification writes.
-Moderators can directly hide or restore Comments through `/api/moderation/comments/:commentId` and can resolve the queue exposed by `/api/moderation/reports`.
+Moderators can directly hide Comments through `/api/moderation/comments/:commentId` and can resolve the queue exposed by `/api/moderation/reports`.
 Replies, direct Comment moderation, and report outcomes create private in-app notifications available through `/api/me/notifications` and the Participant profile.
 
 ## Development and verification

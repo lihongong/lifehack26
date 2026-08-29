@@ -262,6 +262,12 @@ test("Content Reports preserve submission evidence through later edits and delet
 
     const gemAfter = await api.get("/api/me/gems").set("Cookie", reporter.cookie);
     assert.deepEqual(gemAfter.body, gemBefore.body);
+    const resolution = await api
+      .patch(`/api/moderation/reports/${report.body.report.id}`)
+      .set("Cookie", moderator.cookie)
+      .send({ outcome: "hidden", reason: "Author already removed the reported content" });
+    assert.equal(resolution.body.resolution.outcome, "already_unavailable");
+    assert.equal(database.prepare("SELECT id FROM comments WHERE id = ?").get(comment.body.comment.id), undefined);
   } finally {
     database.close();
   }
@@ -324,7 +330,7 @@ test("Moderator resolution hides a reported Comment and independently closes dup
   }
 });
 
-test("Moderators can directly hide and restore any Comment with immutable audit reasons", async () => {
+test("Moderators can directly hide any Comment with an immutable audit reason", async () => {
   const database = createDatabase(":memory:");
   const author = createParticipant(database, "direct-author", "Direct Drew");
   const moderator = createParticipant(database, "direct-moderator", "Moderator Marlow");
@@ -345,18 +351,15 @@ test("Moderators can directly hide and restore any Comment with immutable audit 
     assert.equal(hidden.body.comment.hidden, true);
     assert.equal((await api.get("/api/listings/calculator/comments")).body.comments[0].body, null);
 
-    const restored = await api
+    const restorationRejected = await api
       .patch(`/api/moderation/comments/${comment.body.comment.id}`)
       .set("Cookie", moderator.cookie)
       .send({ hidden: false, reason: "Safety review completed" });
-    assert.equal(restored.status, 200);
-    assert.equal(restored.body.comment.hidden, false);
-    assert.equal((await api.get("/api/listings/calculator/comments")).body.comments[0].body, "A directly moderated Comment");
+    assert.equal(restorationRejected.status, 422);
     assert.deepEqual(
       database.prepare("SELECT event_type, reason FROM audit_log WHERE target_type = 'comment' ORDER BY created_at, event_type").all().map((entry) => ({ ...entry })),
       [
         { event_type: "comment_hidden", reason: "Contains unsafe instructions" },
-        { event_type: "comment_restored", reason: "Safety review completed" },
       ],
     );
   } finally {

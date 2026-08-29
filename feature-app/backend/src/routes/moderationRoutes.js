@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireParticipant } from "../middleware/requireParticipant.js";
 import { requireRole } from "../middleware/requireRole.js";
-import { moderateComment, moderateListing, moderatorListings } from "../services/moderationService.js";
+import { moderateComment, moderateListing, moderatorComments, moderatorListings } from "../services/moderationService.js";
 import { listOpenContentReports, resolveContentReport } from "../services/reportService.js";
 
 export function moderationRoutes({ database, clock }) {
@@ -9,6 +9,7 @@ export function moderationRoutes({ database, clock }) {
   router.use(requireParticipant, requireRole("moderator"));
   router.get("/marketplace", (_request, response) => response.json({ listings: moderatorListings(database) }));
   router.get("/reports", (_request, response) => response.json({ reports: listOpenContentReports(database) }));
+  router.get("/comments", (_request, response) => response.json({ comments: moderatorComments(database) }));
   router.patch("/reports/:reportId", (request, response) => {
     const resolution = resolveContentReport(
       database,

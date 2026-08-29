@@ -38,7 +38,7 @@ export default function CommentThread({ listing }) {
     }
   };
 
-  const perform = async (operation, afterSuccess) => {
+  const submitCommentMutation = async (operation, afterSuccess) => {
     setBusy(true);
     setError("");
     setConfirmation(null);
@@ -75,6 +75,20 @@ export default function CommentThread({ listing }) {
     }
   };
 
+  const interaction = {
+    participant,
+    busy,
+    replyingTo,
+    setReplyingTo,
+    replyBody,
+    setReplyBody,
+    editing,
+    setEditing,
+    editBody,
+    setEditBody,
+    submitCommentMutation,
+  };
+
   return (
     <section className="comment-thread" aria-label={`Comments for ${listing.title}`}>
       <button className="comment-toggle" type="button" aria-expanded={expanded} onClick={open}>
@@ -92,17 +106,7 @@ export default function CommentThread({ listing }) {
                   key={comment.id}
                   comment={comment}
                   listingId={listing.id}
-                  participant={participant}
-                  busy={busy}
-                  replyingTo={replyingTo}
-                  setReplyingTo={setReplyingTo}
-                  replyBody={replyBody}
-                  setReplyBody={setReplyBody}
-                  editing={editing}
-                  setEditing={setEditing}
-                  editBody={editBody}
-                  setEditBody={setEditBody}
-                  perform={perform}
+                  interaction={interaction}
                 />
               ))}
             </ol>
@@ -110,7 +114,7 @@ export default function CommentThread({ listing }) {
           {participant ? (
             <form className="comment-form" onSubmit={(event) => {
               event.preventDefault();
-              perform(
+              submitCommentMutation(
                 (confirmed) => createComment(listing.id, { body, confirmContactDetails: confirmed }),
                 () => setBody(""),
               );
@@ -138,7 +142,20 @@ export default function CommentThread({ listing }) {
   );
 }
 
-function CommentItem({ comment, listingId, participant, busy, replyingTo, setReplyingTo, replyBody, setReplyBody, editing, setEditing, editBody, setEditBody, perform }) {
+function CommentItem({ comment, listingId, interaction }) {
+  const {
+    participant,
+    busy,
+    replyingTo,
+    setReplyingTo,
+    replyBody,
+    setReplyBody,
+    editing,
+    setEditing,
+    editBody,
+    setEditBody,
+    submitCommentMutation,
+  } = interaction;
   const isAuthor = participant?.publicId === comment.author.publicId;
   return (
     <li className={`comment-item${comment.deleted ? " is-removed" : ""}`}>
@@ -157,7 +174,7 @@ function CommentItem({ comment, listingId, participant, busy, replyingTo, setRep
           {isAuthor && (
             <>
               <button type="button" aria-label="Edit Comment" onClick={() => { setEditing(comment.id); setEditBody(comment.body); }}><Pencil size={14} aria-hidden="true" /> Edit</button>
-              <button type="button" aria-label="Delete Comment" onClick={() => perform(() => deleteComment(comment.id))}><Trash2 size={14} aria-hidden="true" /> Delete</button>
+              <button type="button" aria-label="Delete Comment" onClick={() => submitCommentMutation(() => deleteComment(comment.id))}><Trash2 size={14} aria-hidden="true" /> Delete</button>
             </>
           )}
         </div>
@@ -168,7 +185,7 @@ function CommentItem({ comment, listingId, participant, busy, replyingTo, setRep
       {editing === comment.id && (
         <form className="comment-form compact" onSubmit={(event) => {
           event.preventDefault();
-          perform(
+          submitCommentMutation(
             (confirmed) => editComment(comment.id, { body: editBody, confirmContactDetails: confirmed }),
             () => setEditing(null),
           );
@@ -181,7 +198,7 @@ function CommentItem({ comment, listingId, participant, busy, replyingTo, setRep
       {replyingTo === comment.id && (
         <form className="comment-form compact" onSubmit={(event) => {
           event.preventDefault();
-          perform(
+          submitCommentMutation(
             (confirmed) => createComment(listingId, { body: replyBody, parentCommentId: comment.id, confirmContactDetails: confirmed }),
             () => setReplyingTo(null),
           );
@@ -194,7 +211,7 @@ function CommentItem({ comment, listingId, participant, busy, replyingTo, setRep
       {comment.replies?.length > 0 && (
         <ol className="reply-list">
           {comment.replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} listingId={listingId} participant={participant} busy={busy} replyingTo={replyingTo} setReplyingTo={setReplyingTo} replyBody={replyBody} setReplyBody={setReplyBody} editing={editing} setEditing={setEditing} editBody={editBody} setEditBody={setEditBody} perform={perform} />
+            <CommentItem key={reply.id} comment={reply} listingId={listingId} interaction={interaction} />
           ))}
         </ol>
       )}
