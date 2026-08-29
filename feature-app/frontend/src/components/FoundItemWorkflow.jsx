@@ -50,7 +50,7 @@ export default function FoundItemWorkflow({ onChanged }) {
     document.getElementById("found-item-report-form")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  if (!participant) return <aside className="lost-item-sign-in found-item-sign-in">
+  if (!participant) return <aside className="exchange-panel lost-item-sign-in found-item-sign-in">
     <h3>Sign in to report what you found</h3>
     <p>Use your uNivUS session so a Moderator can review the report and privately arrange handover.</p>
     <a href="/univus/">Open through uNivUS</a>
@@ -79,9 +79,9 @@ export default function FoundItemWorkflow({ onChanged }) {
   }
 
   return <section className="participant-property-workflow found-participant-workflow" aria-labelledby="found-report-form-title">
-    {error && <p className="form-error" role="alert">{error}</p>}
-    {status && <p className="action-status" role="status">{status}</p>}
-    <form id="found-item-report-form" className="lost-item-form" onSubmit={submit}>
+    {error && <p className="feed-state is-error form-error" role="alert">{error}</p>}
+    {status && <p className="feed-state is-success action-status" role="status">{status}</p>}
+    <form id="found-item-report-form" className="exchange-panel lost-item-form" onSubmit={submit}>
       <div><p className="eyebrow">YOU FOUND AN ITEM</p><h2 id="found-report-form-title">{editingId ? "Update found-item report" : "Tell us what you found"}</h2><p>Share where and when you found it. Identifying details stay private and help with later ownership checks.</p></div>
       <SelectControl label="Found category" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} options={categories.map((value) => [value, value])} />
       <DateControl required label="Found date" max={today()} value={draft.foundDate} onChange={(value) => setDraft({ ...draft, foundDate: value })} />
@@ -105,7 +105,7 @@ export default function FoundItemWorkflow({ onChanged }) {
 }
 
 function MyFoundItemReports({ reports, onEdit, onWithdraw }) {
-  return <section className="my-lost-items"><h2>My found-item reports</h2>{reports.length ? <ul>{reports.map((report) => <li key={report.id}>
+  return <section className="exchange-panel my-lost-items"><h2>My found-item reports</h2>{reports.length ? <ul>{reports.map((report) => <li key={report.id}>
     <div><strong>{report.category} · {report.foundDate}</strong><span className={`status-badge status-${report.status}`}>{report.status.replaceAll("_", " ")}</span></div>
     <p>{report.description}</p>
     {report.rejectionReason && <p className="rejection-reason">Moderator reason: {report.rejectionReason}</p>}
@@ -119,7 +119,7 @@ function MyFoundItemReports({ reports, onEdit, onWithdraw }) {
 export function FoundPropertyCard({ value, type }) {
   const isItem = type === "found_item";
   const foundDate = new Intl.DateTimeFormat("en-SG", { dateStyle: "medium" }).format(new Date(`${value.foundDate}T12:00:00+08:00`));
-  return <article className="listing-card lost-item-card found-property-card">
+  return <article className="exchange-card listing-card lost-item-card found-property-card">
     <div className="lost-item-gallery">{value.photos.length ? value.photos.map((photo) => <img key={photo.id} src={photo.url} alt={photo.alt} />) : <div className="listing-image is-fallback"><ImageOff aria-hidden="true" /><span>No public photo</span></div>}</div>
     <div className="listing-content"><div className="listing-top"><span className="category">{value.category}</span><span className="status-badge">{isItem ? "In custody" : "Found"}</span></div><h3>{isItem ? "Found Item" : "Found-Item Report"}</h3>{value.handoverArranged && <p className="handover-note">Handover has been arranged privately.</p>}{value.fictional && <span className="fictional-note">Fictional fixture</span>}<p>{value.description}</p><div className="lost-item-facts"><span><CalendarDays size={15} aria-hidden="true" />Found {foundDate}</span><span><MapPin size={15} aria-hidden="true" />{value.nusZone.name}</span>{isItem && <span><PackageCheck size={15} aria-hidden="true" />Condition: {value.condition}</span>}</div><ReportControl targetType={type} targetId={value.id} label={`Report ${isItem ? "Found Item" : "Found-Item Report"}`} /><CommentThread post={value} postType={type} label={isItem ? "Found Item" : "Found-Item Report"} /></div>
   </article>;

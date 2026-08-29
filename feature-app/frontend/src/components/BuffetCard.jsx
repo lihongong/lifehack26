@@ -6,7 +6,7 @@ const time = (value) => new Intl.DateTimeFormat("en-SG", { dateStyle: "medium", 
 export default function BuffetCard({ post, alert, onFeedback, feedbackPending, participant, goingPending, onGoing, reward }) {
   const minutesAgo = Math.max(0, Math.round((Date.now() - new Date(post.sourceTime)) / 60_000));
   return (
-    <article className={`buffet-card${post.zone ? "" : " location-unclear"}`}>
+    <article className={`exchange-card buffet-card${post.zone ? "" : " location-unclear"}`}>
       <div className="buffet-card-heading">
         <span className="fictional-note">Fictional Buffet Post</span>
         <span>{minutesAgo}m ago</span>

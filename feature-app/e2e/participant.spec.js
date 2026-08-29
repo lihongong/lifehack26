@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 async function launchFromUnivus(page) {
   await page.goto("/univus/");
   const popupPromise = page.waitForEvent("popup");
-  await page.getByRole("link", { name: /Open Hackathon App/ }).click();
+  await page.getByRole("link", { name: /Open .+ in a new tab/ }).click();
   const app = await popupPromise;
   await app.waitForURL((url) => url.pathname === "/" || url.pathname === "/profile/setup");
   return app;

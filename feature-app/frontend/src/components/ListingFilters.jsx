@@ -1,32 +1,14 @@
-import { ChevronDown, Search } from "lucide-react";
-
-export function SelectControl({ label, value, onChange, children }) {
-  return (
-    <label className="select-control">
-      <span className="select-label">{label}</span>
-      <span className="select-shell">
-        <select value={value} onChange={onChange} aria-label={label}>
-          {children}
-        </select>
-        <ChevronDown aria-hidden="true" size={17} strokeWidth={2.2} />
-      </span>
-    </label>
-  );
-}
+import { SearchControl, SelectControl } from "./ExchangePrimitives.jsx";
 
 export default function ListingFilters({ filters, onChange }) {
   return (
-    <div className="filters">
-      <label className="search-field">
-        <Search aria-hidden="true" size={20} strokeWidth={2.1} />
-        <input
-          type="search"
-          value={filters.query}
-          onChange={(event) => onChange({ query: event.target.value })}
-          placeholder="Search listings"
-          aria-label="Search listings"
-        />
-      </label>
+    <div className="exchange-filters">
+      <SearchControl
+        label="Search listings"
+        placeholder="Search listings"
+        value={filters.query}
+        onChange={(event) => onChange({ query: event.target.value })}
+      />
       <div className="filter-row">
         <SelectControl
           label="Category"

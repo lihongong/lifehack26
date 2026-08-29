@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import BuffetCard from "./BuffetCard.jsx";
 import BuffetFilters from "./BuffetFilters.jsx";
 import BuffetAlertSettings from "./BuffetAlertSettings.jsx";
+import { FeedHeader } from "./ExchangePrimitives.jsx";
 import { useBuffets } from "../hooks/useBuffets.js";
 import { getBuffetAlerts, recordBuffetAlertFeedback, recordBuffetGoing } from "../api/buffetApi.js";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -22,18 +23,20 @@ export default function BuffetFeed() {
   }, [participant]);
   const alertsByPost = new Map((alertData?.alerts || []).map((alert) => [alert.postId, alert]));
   return (
-    <section className="marketplace buffet-feed" aria-labelledby="buffet-title">
-      <div className="section-heading">
-        <div><p className="eyebrow">AVAILABLE NOW</p><h2 id="buffet-title">Fresh Buffet Posts</h2></div>
-        <span aria-live="polite">{loading ? "Loading…" : `${posts.length} ${posts.length === 1 ? "post" : "posts"}`}</span>
-      </div>
-      <p className="feed-note">Fictional demonstration posts expire automatically at their collection deadline.</p>
+    <section className="exchange-feed buffet-feed" aria-labelledby="buffet-title">
+      <FeedHeader
+        eyebrow="AVAILABLE NOW"
+        title="Fresh buffet posts"
+        id="buffet-title"
+        countLabel={loading ? "Loading…" : `${posts.length} ${posts.length === 1 ? "post" : "posts"}`}
+        description="Fictional demonstration posts expire automatically at their collection deadline."
+      />
       {participant && alertData && <BuffetAlertSettings data={alertData} onData={setAlertData} />}
       {participant && !alertData && !alertError && <p className="private-alert-status" role="status">Loading private Buffet Alert settings...</p>}
       {alertError && <p className="form-error private-alert-status" role="alert">{alertError}</p>}
       <BuffetFilters filters={filters} zones={zones} onChange={(change) => setFilters((current) => ({ ...current, ...change }))} />
-      {error ? <p className="status-message" role="alert">{error.message}</p>
-        : loading ? <p className="status-message" role="status">Loading Buffet Posts…</p>
+      {error ? <p className="feed-state is-error" role="alert">{error.message}</p>
+        : loading ? <p className="feed-state" role="status">Loading Buffet Posts…</p>
         : posts.length ? <div className="buffet-grid" aria-live="polite">{posts.map((post) => <BuffetCard post={post} participant={participant} reward={rewardNotice?.postId === post.id ? rewardNotice.reward : null} goingPending={goingPending === post.id} onGoing={async (postId) => {
           setGoingPending(postId); setAlertError("");
           try { const result = await recordBuffetGoing(postId); setRewardNotice({ postId, reward: result.reward }); await Promise.all([refreshAuth(), refreshBuffets()]); }
@@ -47,7 +50,7 @@ export default function BuffetFeed() {
             refreshBuffets();
           } catch (caught) { setAlertError(caught.message); } finally { setFeedbackPending(false); }
         }} key={post.id} />)}</div>
-        : <p className="status-message">No active Buffet Posts match these filters.</p>}
+        : <p className="feed-state" aria-live="polite">No active Buffet Posts match these filters.</p>}
     </section>
   );
 }

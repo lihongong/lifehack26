@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 async function launchAndOnboard(page) {
   await page.goto("/univus/");
   const popupPromise = page.waitForEvent("popup");
-  await page.getByRole("link", { name: /Open Hackathon App/ }).click();
+  await page.getByRole("link", { name: /Open .+ in a new tab/ }).click();
   const app = await popupPromise;
   await app.waitForURL(/\/profile\/setup$/);
   await app.getByLabel("Public display name").fill("Policy Participant");

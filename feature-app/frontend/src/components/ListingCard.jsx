@@ -28,7 +28,7 @@ export default function ListingCard({ listing }) {
   const expiryTime = dateFormatter.format(new Date(listing.expiresAt));
 
   return (
-    <article className="listing-card">
+    <article className="exchange-card listing-card">
       <div className={`listing-image${showImageFallback ? " is-fallback" : ""}`}>
         {showImageFallback ? <><ImageOff aria-hidden="true" size={30} /><span>Image unavailable</span></> : <img src={listing.imageUrl} alt={listing.imageAlt || ""} onError={() => setImageFailed(true)} />}
       </div>

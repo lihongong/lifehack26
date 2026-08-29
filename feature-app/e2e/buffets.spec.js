@@ -6,7 +6,7 @@ test("anonymous visitor searches persistent fictional Buffet Posts", async ({ pa
   await page.request.post("/api/dev/reset");
   await page.request.post("/api/dev/clock", { data: { now: anchor } });
   await page.goto("/buffets");
-  await expect(page.getByRole("heading", { name: "Fresh Buffet Posts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fresh buffet posts" })).toBeVisible();
   await expect(page.getByText("Fictional Buffet Post").first()).toBeVisible();
   await expect(page.getByText("6 posts")).toBeVisible();
 
