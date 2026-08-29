@@ -10,6 +10,7 @@ import {
   resolveSourceDiscrepancy,
   withdrawSourceAuthorConsent,
 } from "../services/sourceFeedService.js";
+import { listOpenBuffetReviews, resolveBuffetReview } from "../services/buffetAlertService.js";
 
 export function moderationRoutes({ database, clock, sourceIdentitySecret }) {
   const router = Router();
@@ -17,6 +18,11 @@ export function moderationRoutes({ database, clock, sourceIdentitySecret }) {
   router.get("/marketplace", (_request, response) => response.json({ listings: moderatorListings(database, clock.now()) }));
   router.get("/reports", (_request, response) => response.json({ reports: listOpenContentReports(database) }));
   router.get("/comments", (_request, response) => response.json({ comments: moderatorComments(database, clock.now()) }));
+  router.get("/buffet-reviews", (_request, response) => response.json({ reviews: listOpenBuffetReviews(database) }));
+  router.patch("/buffet-reviews/:reviewId", (request, response) => {
+    const resolution = resolveBuffetReview(database, request.participant, request.params.reviewId, request.body?.outcome, request.body?.reason, clock.now());
+    response.json({ resolution });
+  });
   router.patch("/reports/:reportId", (request, response) => {
     const resolution = resolveContentReport(
       database,

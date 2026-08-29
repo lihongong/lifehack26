@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getBuffetAlerts } from "../api/buffetApi.js";
 
 export default function ProfileForm({ participant, submitLabel, onSubmit }) {
   const [displayName, setDisplayName] = useState(participant?.displayName || "");
   const [nusZone, setNusZone] = useState(participant?.nusZone || "");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [zones, setZones] = useState([]);
+  useEffect(() => { getBuffetAlerts().then(({ settings }) => setZones(settings.zones)).catch(() => {}); }, []);
   const submit = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -34,9 +37,7 @@ export default function ProfileForm({ participant, submitLabel, onSubmit }) {
         Private NUS Zone
         <select value={nusZone} onChange={(event) => setNusZone(event.target.value)}>
           <option value="">Not selected</option>
-          <option>Kent Ridge</option>
-          <option>Bukit Timah</option>
-          <option>Outram</option>
+          {zones.map((zone) => <option value={zone.id} key={zone.id}>{zone.name}</option>)}
         </select>
       </label>
       {error && (

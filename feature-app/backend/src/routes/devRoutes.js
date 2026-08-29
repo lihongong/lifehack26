@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { activatePolicyVersion } from "../services/policyService.js";
 import { replaySourceFixture, sourceFixtureSnapshot } from "../sourceFeeds/telegramFixtureAdapter.js";
+import { ingestBuffetPosts } from "../services/buffetAlertService.js";
 
-export function devRoutes({ database, clock, environment, sourceIdentitySecret }) {
+export function devRoutes({ database, clock, environment, sourceIdentitySecret, buffetPosts = [] }) {
   const router = Router();
   if (environment === "production") return router;
   router.post("/clock", (request, response) => { clock.set(request.body.now); response.json({ now: clock.now().toISOString() }); });
@@ -32,9 +33,19 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret }
       DROP TRIGGER processed_source_updates_no_delete;
       DROP TRIGGER source_deletion_tombstones_no_update;
       DROP TRIGGER source_deletion_tombstones_no_delete;
+      DROP TRIGGER helpful_alert_outcomes_no_update;
+      DROP TRIGGER helpful_alert_outcomes_no_delete;
+      DROP TRIGGER buffet_review_resolutions_no_update;
+      DROP TRIGGER buffet_review_resolutions_no_delete;
+      DELETE FROM buffet_review_resolutions;
+      DELETE FROM helpful_alert_outcomes;
+      DELETE FROM buffet_food_gone_reviews;
+      DELETE FROM buffet_alerts;
       DELETE FROM report_resolutions;
       DELETE FROM content_reports;
       DELETE FROM notifications;
+      DELETE FROM buffet_post_states;
+      DELETE FROM buffet_posts;
       DELETE FROM comment_moderation;
       DELETE FROM comments;
       DELETE FROM audit_log;
@@ -69,10 +80,15 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret }
       CREATE TRIGGER processed_source_updates_no_delete BEFORE DELETE ON processed_source_updates BEGIN SELECT RAISE(ABORT, 'processed source updates are immutable'); END;
       CREATE TRIGGER source_deletion_tombstones_no_update BEFORE UPDATE ON source_deletion_tombstones BEGIN SELECT RAISE(ABORT, 'source deletion tombstones are immutable'); END;
       CREATE TRIGGER source_deletion_tombstones_no_delete BEFORE DELETE ON source_deletion_tombstones BEGIN SELECT RAISE(ABORT, 'source deletion tombstones are immutable'); END;
+      CREATE TRIGGER helpful_alert_outcomes_no_update BEFORE UPDATE ON helpful_alert_outcomes BEGIN SELECT RAISE(ABORT, 'Helpful Alert outcomes are immutable'); END;
+      CREATE TRIGGER helpful_alert_outcomes_no_delete BEFORE DELETE ON helpful_alert_outcomes BEGIN SELECT RAISE(ABORT, 'Helpful Alert outcomes are immutable'); END;
+      CREATE TRIGGER buffet_review_resolutions_no_update BEFORE UPDATE ON buffet_review_resolutions BEGIN SELECT RAISE(ABORT, 'Buffet review resolutions are immutable'); END;
+      CREATE TRIGGER buffet_review_resolutions_no_delete BEFORE DELETE ON buffet_review_resolutions BEGIN SELECT RAISE(ABORT, 'Buffet review resolutions are immutable'); END;
       COMMIT;
     `);
     clock.set(null);
     replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
+    ingestBuffetPosts(database, buffetPosts, clock.now());
     response.status(204).end();
   });
   return router;

@@ -13,12 +13,14 @@ import { moderationRoutes } from "./routes/moderationRoutes.js";
 import { commentRoutes } from "./routes/commentRoutes.js";
 import { reportRoutes } from "./routes/reportRoutes.js";
 import { buffetRoutes } from "./routes/buffetRoutes.js";
+import { buffetAlertRoutes } from "./routes/buffetAlertRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { participantMiddleware } from "./middleware/requireParticipant.js";
 import { createDatabase } from "./db/database.js";
 import { createClock } from "./services/clock.js";
 import { createUnivusAdapter } from "./integrations/univusAdapter.js";
 import { createDemoBuffetPosts } from "./data/demoBuffetPosts.js";
+import { ingestBuffetPosts } from "./services/buffetAlertService.js";
 
 const backendRoot = fileURLToPath(new URL("..", import.meta.url));
 const frontendDist = join(backendRoot, "../frontend/dist");
@@ -40,11 +42,13 @@ export function createApp({
   const anchoredBuffetPosts =
     buffetPosts ||
     createDemoBuffetPosts(Number.isNaN(configuredAnchor.getTime()) ? clock.now() : configuredAnchor);
+  ingestBuffetPosts(database, anchoredBuffetPosts, clock.now());
   app.disable("x-powered-by");
   app.use(express.json({ limit: "16kb" }));
   app.use(participantMiddleware({ database, clock }));
   app.use("/api/listings", listingsRoutes({ database, clock }));
-  app.use("/api/buffets", buffetRoutes({ posts: anchoredBuffetPosts, clock }));
+  app.use("/api/buffets", buffetRoutes({ database, clock }));
+  app.use("/api/buffet-alerts", buffetAlertRoutes({ database, clock }));
   app.use("/api/integrations", integrationRoutes({ database, clock, univusAdapter }));
   app.use("/api/auth", authRoutes({ database, clock, environment, platformOperatorSubject }));
   app.use("/api", profileRoutes({ database, clock }));
@@ -54,7 +58,7 @@ export function createApp({
   app.use("/api/moderation", moderationRoutes({ database, clock, sourceIdentitySecret }));
   app.use("/api", commentRoutes({ database, clock }));
   app.use("/api", reportRoutes({ database, clock }));
-  app.use("/api/dev", devRoutes({ database, clock, environment, sourceIdentitySecret }));
+  app.use("/api/dev", devRoutes({ database, clock, environment, sourceIdentitySecret, buffetPosts: anchoredBuffetPosts }));
   if (environment !== "production") app.use("/univus", express.static(mockHomepage));
   app.use(express.static(frontendDist));
   app.get("*splat", (_request, response) => response.sendFile(join(frontendDist, "index.html")));

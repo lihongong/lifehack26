@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader.jsx";
+import BuffetReviewPanel from "../components/BuffetReviewPanel.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import {
   getContentReports,
@@ -77,6 +78,7 @@ export default function ModerationPage() {
         <p>Review Content Reports and Source Discrepancies, manage author consent, and directly moderate public Comments and Marketplace Listings. Every sensitive decision is recorded.</p>
         {error && <p className="form-error" role="alert">{error}</p>}
         {status && <p className="action-status" role="status">{status}</p>}
+        <BuffetReviewPanel />
         <section aria-labelledby="content-reports-title">
           <h2 id="content-reports-title">Content Reports</h2>
           {reports.length ? (

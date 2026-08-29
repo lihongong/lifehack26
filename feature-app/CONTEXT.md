@@ -85,6 +85,27 @@ Approved aliases map as follows: ERC to UTown; SRC and UCC to Museum/UCC; EA to 
 The undirected edges are UTown-Museum/UCC, UTown-CDE, Museum/UCC-CDE, Museum/UCC-Central, Museum/UCC-FASS, CDE-Central, CDE-Business, Central-FASS, Central-Business, Central-Computing, Central-Science, FASS-Business, Business-Computing, Business-PGP, Computing-PGP, Computing-Science, PGP-Science, PGP-Medicine/Kent Ridge MRT, and Science-Medicine/Kent Ridge MRT.
 The graph is an implementation inference for Nearby Zone behavior, not an official walking-time claim, and the public issue #7 filter does not include adjacent zones.
 
+## Private Buffet Alerts and Helpful Alert review
+
+Each authenticated Participant starts with no selected NUS Zone and Buffet Alerts off.
+The private profile and Buffet Alert settings use the canonical `nus-zones-v1` identifiers, while public Participant profiles never expose the selected zone or alert preference.
+Enabling Buffet Alerts or changing the zone of an enabled subscription requires current alert-policy acceptance.
+A Participant can always opt out without renewed policy acceptance, and clearing the selected NUS Zone atomically turns Buffet Alerts off.
+
+Buffet Posts are persisted under a Source Feed namespace and stable source post identifier before delivery is reconciled.
+A fresh Buffet Post creates at most one private Buffet Alert and one linked in-app notification for each eligible Participant whose selected zone is the post's zone or one adjacent graph hop away.
+Location-unclear, time-expired, possibly-gone, and confirmed-expired Buffet Posts do not create alerts.
+Source edits and repeated reconciliation preserve the original delivery identity and cannot duplicate either the Buffet Alert or its notification.
+
+A Participant can record one terminal Helpful Alert outcome for their own Buffet Alert by marking it helpful or reporting food gone.
+A food-gone outcome marks the Buffet Post possibly gone, suppresses later delivery, and joins the current open Moderator review cycle.
+Each review cycle preserves a sanitized report-time Buffet Post snapshot and aggregates concurrent signals without exposing reporter identity publicly.
+A later food-gone outcome can open a new cycle after restoration, while only one cycle can remain open for a Buffet Post at a time.
+
+A Moderator can restore a reviewed Buffet Post or confirm it expired with a required reason.
+The resolution and `buffet_post_restored` or `buffet_post_expired` audit event are recorded atomically, and both the Helpful Alert outcome and review resolution are immutable.
+Restoration never duplicates an earlier Participant delivery, and a Buffet Post whose source expiry has passed resolves as expired rather than being revived.
+
 ## Development and verification
 
 Non-production uNivUS launches support fixed `operator`, `moderator`, and `participant` demo identities through the `x-demo-identity` request header.

@@ -31,3 +31,7 @@ export const resolveSourceDiscrepancy = (id, decision, reason, correctedListing)
 export const getSourceAuthorConsents = (feedId) => request(`/api/moderation/source-feeds/${encodeURIComponent(feedId)}/author-consents`);
 export const recordSourceAuthorConsent = (feedId, consent) => request(`/api/moderation/source-feeds/${encodeURIComponent(feedId)}/author-consents`, { method: "POST", body: JSON.stringify(consent) });
 export const withdrawSourceAuthorConsent = (feedId, consentId, reason) => request(`/api/moderation/source-feeds/${encodeURIComponent(feedId)}/author-consents/${encodeURIComponent(consentId)}`, { method: "DELETE", body: JSON.stringify({ reason }) });
+export const getBuffetFoodGoneReviews = () => request("/api/moderation/buffet-reviews");
+export const resolveBuffetFoodGoneReview = (reviewId, outcome, reason) => request(`/api/moderation/buffet-reviews/${encodeURIComponent(reviewId)}`, {
+  method: "PATCH", body: JSON.stringify({ outcome, reason }),
+});

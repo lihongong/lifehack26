@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getBuffetFeed } from "../api/buffetApi.js";
 
 export function useBuffets(filters) {
   const [state, setState] = useState({ posts: [], zones: [], loading: true, error: null });
+  const [revision, setRevision] = useState(0);
   useEffect(() => {
     let active = true;
     const load = () => getBuffetFeed(filters)
@@ -12,6 +13,7 @@ export function useBuffets(filters) {
     load();
     const refresh = setInterval(load, 30_000);
     return () => { active = false; clearInterval(refresh); };
-  }, [filters]);
-  return state;
+  }, [filters, revision]);
+  const refresh = useCallback(() => setRevision((value) => value + 1), []);
+  return { ...state, refresh };
 }

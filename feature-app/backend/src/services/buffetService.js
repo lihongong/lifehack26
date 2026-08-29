@@ -4,9 +4,13 @@ const FALLBACK_EXPIRY_MS = 2 * 60 * 60 * 1000;
 const freshnessValues = new Set(["active", "30", "60"]);
 const zoneIds = new Set(nusZones.map(({ id }) => id));
 
+export function buffetPostExpiry(post) {
+  return post.collectionDeadline || new Date(new Date(post.sourceTime).getTime() + FALLBACK_EXPIRY_MS).toISOString();
+}
+
 function publicPost(post) {
   const zone = nusZones.find(({ id }) => id === post.zoneId);
-  const expiresAt = post.collectionDeadline || new Date(new Date(post.sourceTime).getTime() + FALLBACK_EXPIRY_MS).toISOString();
+  const expiresAt = buffetPostExpiry(post);
   return {
     id: post.id,
     title: post.title,
@@ -35,6 +39,9 @@ export function findBuffetPosts(posts, { query = "", zone = "all", freshness = "
   }).sort((left, right) => new Date(right.sourceTime) - new Date(left.sourceTime) || left.id.localeCompare(right.id));
 }
 
-export function buffetFeed(databasePosts, filters, now) {
-  return { posts: findBuffetPosts(databasePosts, filters, now), zones: publicZones(), zoneGraphVersion: ZONE_GRAPH_VERSION, serverNow: now.toISOString() };
+export function buffetFeed(databasePosts, filters, now, states = new Map()) {
+  const posts = findBuffetPosts(databasePosts, filters, now)
+    .filter((post) => states.get(post.id) !== "confirmed_expired")
+    .map((post) => ({ ...post, possiblyGone: states.get(post.id) === "possibly_gone" }));
+  return { posts, zones: publicZones(), zoneGraphVersion: ZONE_GRAPH_VERSION, serverNow: now.toISOString() };
 }
