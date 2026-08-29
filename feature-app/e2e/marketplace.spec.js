@@ -17,14 +17,14 @@ test("anonymous visitor can browse and filter Marketplace", async ({ page }) => 
   await searchBox.fill("calculator");
   await expect(page.getByRole("heading", { name: "TI-84 Plus calculator" })).toBeVisible();
   await expect(page.getByText("1 listing")).toBeVisible();
-  await page.getByRole("link", { name: "Buffets" }).click();
+  await Promise.all([page.waitForURL("**/buffets"), page.getByRole("link", { name: "Buffets" }).click()]);
   await expect(page.getByRole("heading", { name: "Buffets" })).toBeVisible();
-  await page.getByRole("link", { name: "Lost & Found" }).click();
+  await Promise.all([page.waitForURL("**/lost-and-found"), page.getByRole("link", { name: "Lost & Found" }).click()]);
   await expect(page.getByRole("heading", { name: "Lost & Found" })).toBeVisible();
 });
-test("public controls are keyboard accessible and protected action is disabled", async ({ page }) => {
+test("public controls are keyboard accessible and profile handoff is available", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Sign in required" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Open through uNivUS" })).toHaveAttribute("href", "/univus/");
   await page.keyboard.press("Tab");
   await expect(page.locator(":focus")).toBeVisible();
   await expect(page.getByRole("link", { name: /View original seller/ })).toHaveCount(0);

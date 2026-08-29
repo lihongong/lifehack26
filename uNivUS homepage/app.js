@@ -43,6 +43,21 @@ function configureCustomApp(config) {
 
 configureCustomApp(customApp);
 
+document.querySelector("#custom-app").addEventListener("click", async (event) => {
+  event.preventDefault();
+  const popup = window.open("about:blank", "_blank");
+  try {
+    const response = await fetch("/api/integrations/univus/launch", { method: "POST" });
+    if (!response.ok) throw new Error("Unable to open NUS Exchange");
+    const { launchUrl } = await response.json();
+    if (popup) popup.location.href = launchUrl;
+    else window.location.href = launchUrl;
+  } catch (error) {
+    if (popup) popup.close();
+    window.alert(error.message);
+  }
+});
+
 document.querySelectorAll('.bottom-nav a[href="#"]').forEach((link) => {
   link.addEventListener("click", (event) => event.preventDefault());
 });

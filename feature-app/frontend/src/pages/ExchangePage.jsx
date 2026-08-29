@@ -69,7 +69,7 @@ export default function ExchangePage() {
       )}
       <footer>
         <span>All listings are fictional demo data.</span>
-        <span>Protected actions require sign in.</span>
+        <span>Private features use your uNivUS session.</span>
       </footer>
     </main>
   );

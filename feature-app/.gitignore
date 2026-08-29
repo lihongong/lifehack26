@@ -2,3 +2,4 @@ node_modules/
 frontend/dist/
 e2e/test-results/
 e2e/playwright-report/
+backend/data/*.sqlite*
