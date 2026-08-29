@@ -23,7 +23,8 @@ Every Moderator has one unrestricted Moderator role rather than a collection of 
 
 The current demonstrable sensitive action is hiding or restoring a Marketplace Listing through `/api/moderation/marketplace`.
 Public Marketplace queries exclude hidden listings, while Moderators can inspect both visible and hidden listings on `/moderation/marketplace`.
-Every successful bootstrap, Moderator enrollment, Moderator removal, Marketplace hide, and Marketplace restore writes an audit event in the same transaction as the sensitive change.
+Moderators can also publish and soft-delete manual Marketplace Listings through the same surface, with records kept separate from imported Source Feed provenance and defaulting to a 30-day public lifetime.
+Every successful bootstrap, Moderator enrollment, Moderator removal, Marketplace create, Marketplace delete, Marketplace hide, and Marketplace restore writes an audit event in the same transaction as the sensitive change.
 Audit events record the event type, actor, target, reason, timestamp, and whether the action was self-directed.
 Self-directed Marketplace actions are inferred on the server from an internal Source Feed author subject and are never accepted from the client or exposed publicly.
 SQLite triggers reject updates and deletions from the audit log.

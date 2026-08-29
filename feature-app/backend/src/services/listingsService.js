@@ -1,3 +1,5 @@
+import { persistedManualListings } from "./manualMarketplaceService.js";
+
 const categories = new Set(["All", "Study", "Room & Living", "Transport", "Electronics"]);
 
 export function persistedListings(database, now = new Date(), { includeExpired = false } = {}) {
@@ -32,6 +34,7 @@ export function persistedListings(database, now = new Date(), { includeExpired =
       imageUrl: row.imageUrl,
       imageAlt: row.imageAlt,
       fictional: Boolean(row.fictional),
+      origin: "source_feed",
       authorKeyHash: row.authorKeyHash,
       attributionState: displayNameAllowed && contactAllowed
         ? "name_and_contact"
@@ -63,9 +66,17 @@ export function filterListings(listings, { query = "", category = "All", sort = 
 }
 
 export function findListings(database, filters = {}, hiddenIds = new Set(), { includeInternal = false, includeExpired = false, now = new Date() } = {}) {
-  return filterListings(persistedListings(database, now, { includeExpired }), filters, hiddenIds).map((listing) => {
+  const listings = [...persistedListings(database, now, { includeExpired }), ...persistedManualListings(database, now, { includeExpired })];
+  return filterListings(listings, filters, hiddenIds).map((listing) => {
     if (includeInternal) return listing;
-    const { authorKeyHash: _authorKeyHash, sourceUrl: _sourceUrl, expiryBasis: _expiryBasis, expired: _expired, ...visible } = listing;
+    const {
+      authorKeyHash: _authorKeyHash,
+      sourceUrl: _sourceUrl,
+      expiryBasis: _expiryBasis,
+      expired: _expired,
+      createdByParticipantId: _createdByParticipantId,
+      ...visible
+    } = listing;
     return visible;
   });
 }

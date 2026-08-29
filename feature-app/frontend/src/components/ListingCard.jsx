@@ -25,7 +25,7 @@ export default function ListingCard({ listing }) {
         {showImageFallback ? <><ImageOff aria-hidden="true" size={30} /><span>Image unavailable</span></> : <img src={listing.imageUrl} alt={listing.imageAlt || ""} onError={() => setImageFailed(true)} />}
       </div>
       <div className="listing-content">
-        <div className="listing-top"><span className="category">{listing.category}</span><span className="source-author">{listing.authorDisplayName ? `By ${listing.authorDisplayName}` : "Seller name withheld"}</span></div>
+        <div className="listing-top"><span className="category">{listing.category}</span><span className="source-author">{listing.origin === "manual" ? "Added by a Community Exchange Moderator" : listing.authorDisplayName ? `By ${listing.authorDisplayName}` : "Seller name withheld"}</span></div>
         <h3>{listing.title}</h3>
         {listing.fictional && <span className="fictional-note">Fictional demo listing</span>}
         <p>{listing.description}</p>

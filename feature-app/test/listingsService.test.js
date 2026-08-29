@@ -12,7 +12,7 @@ function withListings(run) {
 
 test("all replayed fixtures are fictional and include safe public provenance and expiry", () => withListings((database) =>
   assert.ok(findListings(database).every((item) =>
-    item.fictional && item.source && item.sourceTime && item.updatedAt === item.sourceTime && item.expiresAt &&
+    item.fictional && item.origin === "source_feed" && item.source && item.sourceTime && item.updatedAt === item.sourceTime && item.expiresAt &&
     item.attributionState === "withheld" && item.imageUrl && item.imageAlt && !("sourceUrl" in item) && !("expiryBasis" in item),
   )),
 ));
