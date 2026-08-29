@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { awardDailyLogin, getGemAccount } from "./gemService.js";
+import { getGemAccount } from "./gemService.js";
 import { privateProfile, upsertParticipant } from "./participantService.js";
 import { bootstrapPlatformOperator } from "./privilegeService.js";
 
@@ -34,7 +34,6 @@ export function completeLaunch(database, rawToken, now, platformOperatorSubject 
     const identity = consumeLaunchAssertion(database, rawToken, now);
     const participant = upsertParticipant(database, identity, now);
     bootstrapPlatformOperator(database, participant, identity, platformOperatorSubject, now);
-    awardDailyLogin(database, participant.id, now);
     const session = createSession(database, participant.id, now);
     database.exec("COMMIT");
     return { participant, session };
@@ -53,7 +52,6 @@ export function resolveSession(database, rawToken, now) {
   if (!rawToken) return null;
   const row = database.prepare("SELECT s.token_hash, s.participant_id, p.*, COALESCE(pr.role, 'participant') AS role FROM sessions s JOIN participants p ON p.id = s.participant_id LEFT JOIN privileged_roles pr ON pr.participant_id = p.id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ?").get(hash(rawToken), now.toISOString());
   if (!row) return null;
-  awardDailyLogin(database, row.participant_id, now);
   return row;
 }
 

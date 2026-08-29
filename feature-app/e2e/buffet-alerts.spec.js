@@ -49,7 +49,7 @@ test("Participant enables deduplicated same-zone and Nearby Zone alerts and reco
   await page.goto("/profile");
   await expect(page.locator(".notifications li")).toHaveCount(3);
   await expect(page.locator(".notifications").getByText("Nearby Zone: Vegetarian bento boxes")).toBeVisible();
-  await expect(page.getByText("5 Gems")).toBeVisible();
+  await expect(page.getByText("0 Gems")).toBeVisible();
 });
 
 test("food-gone feedback suppresses delivery, a Moderator restores it, and the audit is visible", async ({ page, browser }) => {

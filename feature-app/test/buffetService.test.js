@@ -26,7 +26,7 @@ test("versioned NUS Zones contain approved aliases and a valid undirected graph"
 });
 
 test("search, exact zones, unclear locations, and freshness filters are deterministic", () => {
-  assert.equal(findBuffetPosts(posts, {}, anchor).length, 5);
+  assert.equal(findBuffetPosts(posts, {}, anchor).length, 6);
   assert.deepEqual(findBuffetPosts(posts, { freshness: "30" }, anchor).map(({ id }) => id).sort(), ["science-bentos", "unclear-snacks", "utown-pastries"]);
   assert.equal(findBuffetPosts(posts, { freshness: "60" }, anchor).length, 4);
   assert.deepEqual(findBuffetPosts(posts, { zone: "science" }, anchor).map(({ id }) => id), ["science-bentos"]);
@@ -35,13 +35,15 @@ test("search, exact zones, unclear locations, and freshness filters are determin
   assert.deepEqual(findBuffetPosts(posts, { query: "LT27" }, anchor).map(({ id }) => id), ["science-bentos"]);
 });
 
-test("stated and two-hour fallback deadlines expire at the boundary", () => {
-  const active = findBuffetPosts(posts, {}, anchor);
+test("fictional demo posts persist while real posts expire at the boundary", () => {
+  assert.equal(findBuffetPosts(posts, {}, new Date("2026-08-31T04:00:00Z")).length, 6);
+  assert.ok(findBuffetPosts(posts, {}, anchor).every(({ expiryBasis }) => expiryBasis === "demo"));
+  const active = findBuffetPosts(posts.map((post) => ({ ...post, fictional: false })), {}, anchor);
   const fallback = active.find(({ id }) => id === "science-bentos");
   assert.equal(fallback.expiryBasis, "fallback");
   assert.equal(fallback.expiresAt, "2026-08-30T05:35:00.000Z");
   assert.equal(active.find(({ id }) => id === "utown-pastries").expiryBasis, "stated");
-  const atDeadline = findBuffetPosts(posts, {}, new Date("2026-08-30T04:50:00Z"));
+  const atDeadline = findBuffetPosts(posts.map((post) => ({ ...post, fictional: false })), {}, new Date("2026-08-30T04:50:00Z"));
   assert.equal(atDeadline.some(({ id }) => id === "utown-pastries"), false);
   assert.equal(active.some(({ id }) => id === "expired-tea"), false);
 });
@@ -51,7 +53,7 @@ test("anonymous Buffet API returns safe defaults and versioned metadata", async 
   const api = request(createApp({ database, clock: createClock(anchor), environment: "test", buffetPosts: posts }));
   const response = await api.get("/api/buffets?zone=unknown&freshness=unknown");
   assert.equal(response.status, 200);
-  assert.equal(response.body.posts.length, 5);
+  assert.equal(response.body.posts.length, 6);
   assert.equal(response.body.zones.length, 10);
   assert.equal(response.body.zoneGraphVersion, ZONE_GRAPH_VERSION);
   assert.equal(response.body.serverNow, anchor.toISOString());

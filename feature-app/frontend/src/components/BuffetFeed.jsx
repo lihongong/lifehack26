@@ -3,17 +3,19 @@ import BuffetCard from "./BuffetCard.jsx";
 import BuffetFilters from "./BuffetFilters.jsx";
 import BuffetAlertSettings from "./BuffetAlertSettings.jsx";
 import { useBuffets } from "../hooks/useBuffets.js";
-import { getBuffetAlerts, recordBuffetAlertFeedback } from "../api/buffetApi.js";
+import { getBuffetAlerts, recordBuffetAlertFeedback, recordBuffetGoing } from "../api/buffetApi.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 
 export default function BuffetFeed() {
   const [filters, setFilters] = useState({ query: "", zone: "all", freshness: "active" });
   const stableFilters = useMemo(() => filters, [filters]);
-  const { participant } = useAuth();
-  const { posts, zones, loading, error, refresh } = useBuffets(stableFilters);
+  const { participant, refresh: refreshAuth } = useAuth();
+  const { posts, zones, loading, error, refresh: refreshBuffets } = useBuffets(stableFilters);
   const [alertData, setAlertData] = useState(null);
   const [alertError, setAlertError] = useState("");
   const [feedbackPending, setFeedbackPending] = useState(false);
+  const [goingPending, setGoingPending] = useState("");
+  const [rewardNotice, setRewardNotice] = useState(null);
   useEffect(() => {
     if (!participant) { setAlertData(null); return; }
     getBuffetAlerts().then(setAlertData).catch((caught) => caught.status !== 401 && setAlertError(caught.message));
@@ -32,13 +34,17 @@ export default function BuffetFeed() {
       <BuffetFilters filters={filters} zones={zones} onChange={(change) => setFilters((current) => ({ ...current, ...change }))} />
       {error ? <p className="status-message" role="alert">{error.message}</p>
         : loading ? <p className="status-message" role="status">Loading Buffet Posts…</p>
-        : posts.length ? <div className="buffet-grid" aria-live="polite">{posts.map((post) => <BuffetCard post={post} alert={alertsByPost.get(post.id)} feedbackPending={feedbackPending} onFeedback={async (alertId, outcome) => {
+        : posts.length ? <div className="buffet-grid" aria-live="polite">{posts.map((post) => <BuffetCard post={post} participant={participant} reward={rewardNotice?.postId === post.id ? rewardNotice.reward : null} goingPending={goingPending === post.id} onGoing={async (postId) => {
+          setGoingPending(postId); setAlertError("");
+          try { const result = await recordBuffetGoing(postId); setRewardNotice({ postId, reward: result.reward }); await Promise.all([refreshAuth(), refreshBuffets()]); }
+          catch (caught) { setAlertError(caught.message); } finally { setGoingPending(""); }
+        }} alert={alertsByPost.get(post.id)} feedbackPending={feedbackPending} onFeedback={async (alertId, outcome) => {
           setFeedbackPending(true); setAlertError("");
           try {
             await recordBuffetAlertFeedback(alertId, outcome);
             const updated = await getBuffetAlerts();
             setAlertData(updated);
-            refresh();
+            refreshBuffets();
           } catch (caught) { setAlertError(caught.message); } finally { setFeedbackPending(false); }
         }} key={post.id} />)}</div>
         : <p className="status-message">No active Buffet Posts match these filters.</p>}

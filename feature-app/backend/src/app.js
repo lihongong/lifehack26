@@ -52,7 +52,7 @@ export function createApp({
   app.disable("x-powered-by");
   app.use(express.json({ limit: "16kb" }));
   app.use(participantMiddleware({ database, clock }));
-  app.use("/api/listings", listingsRoutes({ database, clock }));
+  app.use("/api/listings", listingsRoutes({ database, clock, environment, sourceIdentitySecret }));
   app.use("/api/buffets", buffetRoutes({ database, clock }));
   app.use("/api/buffet-alerts", buffetAlertRoutes({ database, clock }));
   app.use("/api/integrations", integrationRoutes({ database, clock, univusAdapter }));

@@ -723,6 +723,27 @@ select {
 .lost-status { background: #382520; color: #ffc0b0; }
 .handover-note { min-height: 0 !important; margin: 9px 0 0 !important; color: #9fd6b0 !important; font-size: 10px !important; }
 .reward-note { padding: 10px; border: 1px solid #466c3d; border-radius: 9px; background: #182b19; color: #bde9a9 !important; font-weight: 800; }
+
+.gem-reward-toast { display: grid; grid-template-columns: auto 1fr; gap: 2px 9px; align-items: center; margin: 10px 0; padding: 11px 13px; border: 1px solid #6d5d2c; border-radius: 12px; background: #29240f; color: #ffe99a; }
+.gem-reward-icon { grid-row: 1 / 3; color: #ffd95e; }
+.gem-reward-toast small { color: #e5dba9; }
+.gem-reward-toast.is-awarded .gem-reward-icon { animation: gem-pop 600ms ease-out; }
+.gem-amount { display: inline-flex; align-items: center; gap: 3px; padding: 2px 6px; border: 1px solid currentColor; border-radius: 999px; font-size: 11px; font-weight: 850; line-height: 1; white-space: nowrap; }
+.gem-amount svg { flex: 0 0 auto; }
+.gem-hint { display: block; margin-top: 8px; color: #c9c3aa; }
+.demo-sold-action, .buffet-going-action { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; text-align: center; }
+.lost-item-form-actions .primary-action { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.demo-availability { margin: 12px 0 4px; color: #bde9a9; font-weight: 800; }
+
+@keyframes gem-pop {
+  0% { opacity: 0; transform: translateY(10px) scale(.6) rotate(-15deg); }
+  65% { transform: translateY(-4px) scale(1.25) rotate(8deg); }
+  100% { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gem-reward-toast.is-awarded .gem-reward-icon { animation: none; }
+}
 .found-custody-list h3 { margin: 5px 0 0; color: var(--heading); }
 .privileged-form textarea { width: 100%; border: 1px solid #3b465d; border-radius: 9px; background: #171d2b; color: #f8f8f8; padding: 10px; font: inherit; resize: vertical; }
 .privileged-form select { border: 1px solid #3b465d; background: #171d2b; appearance: auto; }

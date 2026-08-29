@@ -67,11 +67,11 @@ test("the allowlisted Telegram fixture replays deterministically and idempotentl
   assert.ok(first.outcomes.every(({ outcome }) => outcome === "applied"));
   assert.ok(second.outcomes.every(({ status }) => status === "duplicate"));
   assert.deepEqual(sourceFixtureSnapshot(database), firstSnapshot);
-  assert.equal(firstSnapshot.processedUpdates, 4);
+  assert.equal(firstSnapshot.processedUpdates, 5);
   database.close();
 });
 
-test("development Marketplace fixtures include two idempotent fictional author consents", () => {
+test("development Marketplace fixtures include three idempotent fictional author consents", () => {
   const database = createDatabase(":memory:");
   replaySourceFixture(database, "marketplace-baseline", { identitySecret: secret });
   seedDemoMarketplaceConsents(database, secret);
@@ -88,7 +88,7 @@ test("development Marketplace fixtures include two idempotent fictional author c
   );
   assert.equal(listings.find(({ title }) => title === "TI-84 Plus calculator").attributionState, "withheld");
   assert.equal(listings.find(({ title }) => title === "Adjustable study lamp").attributionState, "withheld");
-  assert.equal(database.prepare("SELECT COUNT(*) AS count FROM source_author_consents").get().count, 2);
+  assert.equal(database.prepare("SELECT COUNT(*) AS count FROM source_author_consents").get().count, 3);
   database.close();
 });
 

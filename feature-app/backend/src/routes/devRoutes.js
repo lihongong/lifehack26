@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { activatePolicyVersion } from "../services/policyService.js";
-import { replaySourceFixture, seedDemoMarketplaceConsents, sourceFixtureSnapshot } from "../sourceFeeds/telegramFixtureAdapter.js";
+import { replaySourceFixture, seedDemoMarketplaceConsents, seedDemoMarketplaceRewards, sourceFixtureSnapshot } from "../sourceFeeds/telegramFixtureAdapter.js";
 import { seedLostItemFixtures } from "../services/lostItemFixture.js";
 import { seedCustodyLocation } from "../services/foundItemService.js";
 import { ingestBuffetPosts } from "../services/buffetAlertService.js";
@@ -89,6 +89,7 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
       DELETE FROM lost_item_photos;
       DELETE FROM lost_item_private_payloads;
       DELETE FROM lost_item_posts;
+      DELETE FROM marketplace_sales;
       DELETE FROM marketplace_moderation;
       DELETE FROM manual_marketplace_listings;
       DELETE FROM privileged_roles;
@@ -148,6 +149,7 @@ export function devRoutes({ database, clock, environment, sourceIdentitySecret, 
     clock.set(null);
     replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
     seedDemoMarketplaceConsents(database, sourceIdentitySecret);
+    seedDemoMarketplaceRewards(database, sourceIdentitySecret);
     seedLostItemFixtures(database, lostItemCipher);
     seedCustodyLocation(database);
     ingestBuffetPosts(database, buffetPosts, clock.now());

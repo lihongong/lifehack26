@@ -100,7 +100,7 @@ export default function ProfilePage() {
         <ul className="ledger">
           {ledger.map((entry) => (
             <li key={entry.id}>
-              <span>{entry.reason === "FOUND_ITEM_HANDOVER" ? "Verified Found-Item handover reward" : "Daily login award"} · {entry.singaporeDate}</span>
+              <span>{gemReason(entry.reason)} · {entry.singaporeDate}</span>
               <strong>+{entry.amount}</strong>
             </li>
           ))}
@@ -120,6 +120,18 @@ export default function ProfilePage() {
       </section>
     </main>
   );
+}
+
+function gemReason(reason) {
+  return ({
+    BUFFET_GOING: "Buffet “I’m going” reward",
+    MARKETPLACE_CONTACT: "Marketplace contact reward",
+    MARKETPLACE_SALE_BUYER: "Marketplace buyer sale reward",
+    MARKETPLACE_SALE_SELLER: "Marketplace seller sale reward",
+    FOUND_ITEM_REPORT: "Found-Item Report submission reward",
+    FOUND_ITEM_HANDOVER: "Verified Found-Item handover reward",
+    DAILY_LOGIN: "Daily login award",
+  })[reason] || reason.replaceAll("_", " ").toLowerCase();
 }
 
 function formatAcceptanceTime(value) {

@@ -2,13 +2,13 @@ import { test, expect } from "@playwright/test";
 
 const anchor = "2026-08-30T04:00:00Z";
 
-test("anonymous visitor searches and filters fresh Buffet Posts through expiry", async ({ page }) => {
+test("anonymous visitor searches persistent fictional Buffet Posts", async ({ page }) => {
   await page.request.post("/api/dev/reset");
   await page.request.post("/api/dev/clock", { data: { now: anchor } });
   await page.goto("/buffets");
   await expect(page.getByRole("heading", { name: "Fresh Buffet Posts" })).toBeVisible();
   await expect(page.getByText("Fictional Buffet Post").first()).toBeVisible();
-  await expect(page.getByText("5 posts")).toBeVisible();
+  await expect(page.getByText("6 posts")).toBeVisible();
 
   const search = page.getByRole("searchbox", { name: "Search Buffet Posts" });
   await search.fill("vegetarian");
@@ -32,11 +32,31 @@ test("anonymous visitor searches and filters fresh Buffet Posts through expiry",
   await freshness.selectOption("60");
   await expect(page.getByText("4 posts")).toBeVisible();
   await freshness.selectOption("active");
-  await expect(page.getByText("5 posts")).toBeVisible();
-  await expect(page.getByText(/Two-hour fallback because no deadline was stated/).first()).toBeVisible();
+  await expect(page.getByText("6 posts")).toBeVisible();
+  await expect(page.getByText("Available throughout this demo").first()).toBeVisible();
 
   await page.request.post("/api/dev/clock", { data: { now: "2026-08-30T04:50:00Z" } });
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Pastries and fruit cups" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Pastries and fruit cups" })).toBeVisible();
   await page.request.post("/api/dev/reset");
+});
+
+test("a Participant collects 2 Gems for up to three Buffet Posts daily", async ({ page }) => {
+  await page.request.post("/api/dev/reset");
+  const launch = await page.request.post("/api/integrations/univus/launch", { headers: { "x-demo-identity": "participant" } });
+  await page.goto((await launch.json()).launchUrl);
+  await page.getByLabel("Public display name").fill("Buffet Gem Tester");
+  await page.getByRole("button", { name: "Complete profile" }).click();
+  await page.goto("/buffets");
+  for (const title of ["Pastries and fruit cups", "Vegetarian bento boxes", "Sandwich platters"]) {
+    const card = page.getByRole("article").filter({ hasText: title });
+    await expect(card.getByRole("button", { name: /I’m going/ }).locator(".gem-amount")).toContainText("+2");
+    await card.getByRole("button", { name: /I’m going/ }).click();
+    await expect(card.getByRole("button", { name: "✓ Going" })).toBeDisabled();
+    await expect(card.getByRole("status").filter({ hasText: "+2 Gems" })).toBeVisible();
+  }
+  await page.getByRole("article").filter({ hasText: "Fresh fruit and bottled water" }).getByRole("button", { name: /I’m going/ }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Daily Gem limit reached" })).toBeVisible();
+  await page.goto("/profile");
+  await expect(page.getByText("6 Gems")).toBeVisible();
 });
