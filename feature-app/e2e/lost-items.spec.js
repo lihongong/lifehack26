@@ -23,15 +23,16 @@ test("Participant submission becomes a sanitized public Lost-Item Post and withd
   await page.goto("/lost-and-found");
   await expect(page.getByRole("heading", { name: "Lost & Found" })).toBeVisible();
   await expect(page.getByText("Fictional demo post")).toHaveCount(1);
+  await page.getByRole("button", { name: /I lost something/ }).click();
 
   const form = page.locator("#lost-item-form");
   await form.getByLabel("Category").selectOption("Bags");
   await form.getByLabel("Lost date").fill("2026-08-29");
   await form.getByLabel("NUS Zone").selectOption("utown");
-  await form.getByLabel(/Original description/).fill("ORIGINAL-E2E-CANARY navy bag left near the study spaces after lunch.");
-  await form.getByLabel(/Private Identifying Details/).fill("PRIVATE-E2E-CANARY contains a unique fictional ownership marker.");
-  await form.getByLabel(/Photos/).setInputFiles({ name: "FILENAME-E2E-CANARY.png", mimeType: "image/png", buffer: onePixelPng });
-  await form.getByRole("button", { name: "Submit for review" }).click();
+  await form.getByLabel(/What did you lose/).fill("ORIGINAL-E2E-CANARY navy bag left near the study spaces after lunch.");
+  await form.getByLabel(/Private identifying details/i).fill("PRIVATE-E2E-CANARY contains a unique fictional ownership marker.");
+  await form.getByLabel(/^Photos/).setInputFiles({ name: "FILENAME-E2E-CANARY.png", mimeType: "image/png", buffer: onePixelPng });
+  await form.getByRole("button", { name: "Submit lost-item post" }).click();
   await expect(page.getByRole("status")).toContainText("submitted privately");
   await expect(page.getByText("pending review", { exact: true })).toBeVisible();
 
@@ -78,6 +79,7 @@ test("Participant submission becomes a sanitized public Lost-Item Post and withd
   await expect(reporterCard.getByRole("status")).toContainText("sent to Moderators");
 
   await page.reload();
+  await page.getByRole("button", { name: /I lost something/ }).click();
   const mine = page.locator(".my-lost-items li").filter({ hasText: "ORIGINAL-E2E-CANARY" });
   await mine.getByRole("button", { name: "Withdraw" }).click();
   await expect(page.getByRole("status")).toContainText("withdrawn");

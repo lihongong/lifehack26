@@ -21,15 +21,16 @@ test("verified physical handover replaces the report, preserves Comments, and aw
   await page.request.post("/api/dev/reset");
   await launchAs(page, "participant", "Finder Fiona");
   await page.goto("/lost-and-found");
+  await page.getByRole("button", { name: /I found something/ }).click();
 
   const form = page.locator("#found-item-report-form");
   await form.getByLabel("Found category").selectOption("Bags");
   await form.getByLabel("Found date").fill("2026-08-29");
   await form.getByLabel("Found NUS Zone").selectOption("utown");
-  await form.getByLabel(/Original candidate description/).fill("FOUND-ORIGINAL-E2E-CANARY navy bag discovered beside the UTown study area.");
-  await form.getByLabel("Private Identifying Details").fill("FOUND-PRIVATE-E2E-CANARY unique fictional lining and keychain.");
-  await form.getByLabel(/Safe photos/).setInputFiles({ name: "FOUND-FILENAME-E2E-CANARY.png", mimeType: "image/png", buffer: onePixelPng });
-  await form.getByRole("button", { name: "Submit Found-Item Report" }).click();
+  await form.getByLabel(/What did you find/).fill("FOUND-ORIGINAL-E2E-CANARY navy bag discovered beside the UTown study area.");
+  await form.getByLabel(/Private identifying details/i).fill("FOUND-PRIVATE-E2E-CANARY unique fictional lining and keychain.");
+  await form.getByLabel(/^Photos/).setInputFiles({ name: "FOUND-FILENAME-E2E-CANARY.png", mimeType: "image/png", buffer: onePixelPng });
+  await form.getByRole("button", { name: "Submit found-item report" }).click();
   await expect(page.getByRole("status")).toContainText("submitted privately");
 
   const operatorContext = await browser.newContext();
@@ -75,6 +76,7 @@ test("verified physical handover replaces the report, preserves Comments, and aw
   await expect(moderatorPage.getByRole("status")).toContainText("Handover arranged");
 
   await page.reload();
+  await page.getByRole("button", { name: /I found something/ }).click();
   await expect(page.getByText("Private handover appointment")).toBeVisible();
   await expect(page.getByText("FOUND-APPOINTMENT-E2E-CANARY", { exact: false })).toBeVisible();
   await commenterPage.reload();
