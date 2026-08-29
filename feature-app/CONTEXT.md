@@ -2,6 +2,46 @@
 
 The NUS Community Exchange aggregates time-sensitive community posts and rewards participation across marketplace, buffet, and lost-property experiences.
 
+## Current implementation architecture
+
+The tracer-bullet application currently uses a React and Vite frontend served by a Node and Express backend with SQLite persistence.
+This implementation keeps the current app working while ADR 0004 records the intended production move to Next.js, Vercel, and Supabase.
+`backend/src/app.js` is a side-effect-free application factory so tests can inject an in-memory database, clock, identity adapter, and Platform Operator subject.
+The backend runs every idempotent SQL migration at startup and keeps Participant, session, policy, Gem, privileged-role, moderation, and audit state in SQLite.
+The frontend obtains the private authenticated Participant from `GET /api/auth/session` and uses the returned role to expose only the relevant privileged navigation.
+
+## Authentication and privileged roles
+
+The uNivUS adapter supplies a stable external subject and private email to a one-time launch assertion.
+Session tokens are random, stored only as hashes, carried by an HTTP-only same-site cookie, and resolved against the database on every request.
+The first authenticated identity whose stable subject matches the deployment-only `PLATFORM_OPERATOR_SUBJECT` becomes the sole Platform Operator.
+There is no public Platform Operator elevation endpoint, and missing or mismatched configuration fails closed.
+The Platform Operator can enroll an existing Participant as a Moderator by exact private email and can remove a Moderator with a required reason.
+Moderator removal deletes the current privileged role and revokes all of that Participant's active sessions in the same transaction.
+Every Moderator has one unrestricted Moderator role rather than a collection of narrower permissions.
+
+## Moderation and immutable auditing
+
+The current demonstrable sensitive action is hiding or restoring a Marketplace Listing through `/api/moderation/marketplace`.
+Public Marketplace queries exclude hidden listings, while Moderators can inspect both visible and hidden listings on `/moderation/marketplace`.
+Every successful bootstrap, Moderator enrollment, Moderator removal, Marketplace hide, and Marketplace restore writes an audit event in the same transaction as the sensitive change.
+Audit events record the event type, actor, target, reason, timestamp, and whether the action was self-directed.
+Self-directed Marketplace actions are inferred on the server from an internal Source Feed author subject and are never accepted from the client or exposed publicly.
+SQLite triggers reject updates and deletions from the audit log.
+Only the Platform Operator can read the complete audit trail through `/api/operator/audit` and `/operator`.
+
+## Development and verification
+
+Non-production uNivUS launches support fixed `operator`, `moderator`, and `participant` demo identities through the `x-demo-identity` request header.
+Production rejects the mock adapter and never accepts demo identity selection.
+Playwright starts the app with an in-memory database and the mock Operator's stable subject configured for repeatable role and session-revocation tests.
+Run `npm test`, `npm run build`, and `npm run test:e2e` from this directory before merging a change.
+
+## Issue workflow
+
+Each GitHub issue must be resolved on a new issue-specific branch created from the latest remote `main`.
+The completed branch must be pushed and merged through a pull request containing `Closes #N` rather than committed directly to `main`.
+
 ## Language
 
 **Participant**:

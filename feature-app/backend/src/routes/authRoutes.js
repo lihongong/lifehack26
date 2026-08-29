@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { clearSessionCookie, completeLaunch, revokeSession, sessionPayload, setSessionCookie } from "../services/authService.js";
 
-export function authRoutes({ database, clock, environment }) {
+export function authRoutes({ database, clock, environment, platformOperatorSubject }) {
   const router = Router();
   router.get("/univus/callback", (request, response) => {
-    const { participant, session } = completeLaunch(database, request.query.token, clock.now());
+    const { participant, session } = completeLaunch(database, request.query.token, clock.now(), platformOperatorSubject);
     setSessionCookie(response, session, environment === "production");
     response.redirect(participant.display_name ? "/" : "/profile/setup");
   });

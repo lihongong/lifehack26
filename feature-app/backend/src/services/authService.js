@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { awardDailyLogin, getGemAccount } from "./gemService.js";
 import { privateProfile, upsertParticipant } from "./participantService.js";
+import { bootstrapPlatformOperator } from "./privilegeService.js";
 
 const SESSION_COOKIE = "univus_session";
 const hash = (value) => createHash("sha256").update(value).digest("hex");
@@ -27,11 +28,12 @@ export function createSession(database, participantId, now) {
   return { rawToken, expiresAt };
 }
 
-export function completeLaunch(database, rawToken, now) {
+export function completeLaunch(database, rawToken, now, platformOperatorSubject = "") {
   database.exec("BEGIN IMMEDIATE");
   try {
     const identity = consumeLaunchAssertion(database, rawToken, now);
     const participant = upsertParticipant(database, identity, now);
+    bootstrapPlatformOperator(database, participant, identity, platformOperatorSubject, now);
     awardDailyLogin(database, participant.id, now);
     const session = createSession(database, participant.id, now);
     database.exec("COMMIT");
@@ -49,14 +51,14 @@ export function readCookie(request, name = SESSION_COOKIE) {
 
 export function resolveSession(database, rawToken, now) {
   if (!rawToken) return null;
-  const row = database.prepare("SELECT s.token_hash, s.participant_id, p.* FROM sessions s JOIN participants p ON p.id = s.participant_id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ?").get(hash(rawToken), now.toISOString());
+  const row = database.prepare("SELECT s.token_hash, s.participant_id, p.*, COALESCE(pr.role, 'participant') AS role FROM sessions s JOIN participants p ON p.id = s.participant_id LEFT JOIN privileged_roles pr ON pr.participant_id = p.id WHERE s.token_hash = ? AND s.revoked_at IS NULL AND s.expires_at > ?").get(hash(rawToken), now.toISOString());
   if (!row) return null;
   awardDailyLogin(database, row.participant_id, now);
   return row;
 }
 
 export function sessionPayload(database, participant) {
-  return privateProfile(participant, getGemAccount(database, participant.participant_id || participant.id));
+  return { ...privateProfile(participant, getGemAccount(database, participant.participant_id || participant.id)), role: participant.role || database.prepare("SELECT COALESCE((SELECT role FROM privileged_roles WHERE participant_id = ?), 'participant') AS role").get(participant.id).role };
 }
 
 export function revokeSession(database, rawToken, now) {

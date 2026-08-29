@@ -13,6 +13,7 @@ export const demoListings = Object.freeze([
     imageAlt: "Illustration of a graphing calculator",
     contacts: { whatsapp: "0000000000", telegram: "nus_exchange_demo_unavailable" },
     preferredContact: "whatsapp",
+    ownerSubject: "mock-univus-moderator-001",
   },
   {
     id: "lamp",

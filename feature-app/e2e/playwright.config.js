@@ -8,7 +8,7 @@ export default defineConfig({
     command: "npm run start --prefix ../backend",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: true,
-    env: { NODE_ENV: "test", DATABASE_PATH: ":memory:" },
+    env: { NODE_ENV: "test", DATABASE_PATH: ":memory:", PLATFORM_OPERATOR_SUBJECT: "mock-univus-bryan-001" },
   },
   projects: [
     { name: "mobile", use: { ...devices["iPhone 13"] } },
