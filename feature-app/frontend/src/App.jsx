@@ -1,4 +1,19 @@
+import { Navigate, Route, Routes } from "react-router-dom";
 import ExchangePage from "./pages/ExchangePage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
+import ProfileSetupPage from "./pages/ProfileSetupPage.jsx";
+import PublicProfilePage from "./pages/PublicProfilePage.jsx";
+
 export default function App() {
-  return <ExchangePage />;
+  return (
+    <Routes>
+      <Route path="/" element={<ExchangePage />} />
+      <Route path="/buffets" element={<ExchangePage />} />
+      <Route path="/lost-and-found" element={<ExchangePage />} />
+      <Route path="/profile/setup" element={<ProfileSetupPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/participants/:publicId" element={<PublicProfilePage />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
 }
