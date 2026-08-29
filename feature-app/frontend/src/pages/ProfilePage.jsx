@@ -5,16 +5,19 @@ import ProtectedActionsPanel from "../components/ProtectedActionsPanel.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { getGems, logout, updateProfile } from "../api/participantApi.js";
 import { getPolicyAcceptances } from "../api/policyApi.js";
+import { getNotifications } from "../api/commentApi.js";
 import { useEffect, useState } from "react";
 
 export default function ProfilePage() {
   const { participant, loading, refresh } = useAuth();
   const [ledger, setLedger] = useState([]);
   const [acceptances, setAcceptances] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   useEffect(() => {
     if (participant) {
       getGems().then((data) => setLedger(data.entries));
       getPolicyAcceptances().then((data) => setAcceptances(data.acceptances));
+      getNotifications().then((data) => setNotifications(data.notifications));
     }
   }, [participant]);
   if (loading)
@@ -64,6 +67,19 @@ export default function ProfilePage() {
           }}
         />
         <ProtectedActionsPanel />
+        <section className="notifications" aria-labelledby="notifications-title">
+          <h2 id="notifications-title">Notifications</h2>
+          {notifications.length ? (
+            <ul>
+              {notifications.map((notification) => (
+                <li key={notification.id}>
+                  <span>{notification.message}</span>
+                  <time dateTime={notification.createdAt}>{formatAcceptanceTime(notification.createdAt)}</time>
+                </li>
+              ))}
+            </ul>
+          ) : <p>No notifications yet.</p>}
+        </section>
         <section className="acceptance-history" aria-labelledby="acceptance-history-title">
           <h2 id="acceptance-history-title">Policy acceptance history</h2>
           {acceptances.length ? (
