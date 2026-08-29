@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
+const marketplaceLifecycleMigration = "005_marketplace_listing_lifecycle.sql";
 
 export function createDatabase(
   path = process.env.DATABASE_PATH || join(currentDir, "../../data/community-exchange.sqlite"),
@@ -19,10 +20,13 @@ export function createDatabase(
       applied_at TEXT NOT NULL
     );
   `);
+  if (!database.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'marketplace_listing_lifecycle'").get()) {
+    database.prepare("DELETE FROM schema_migrations WHERE name = ?").run(marketplaceLifecycleMigration);
+  }
   if (existingApplicationSchema && !database.prepare("SELECT 1 FROM schema_migrations LIMIT 1").get()) {
     const markApplied = database.prepare("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)");
     const appliedAt = new Date().toISOString();
-    for (const migration of migrations.filter((name) => name < "006_buffet_alerts.sql")) markApplied.run(migration, appliedAt);
+    for (const migration of migrations.filter((name) => name < marketplaceLifecycleMigration)) markApplied.run(migration, appliedAt);
   }
   const isApplied = database.prepare("SELECT 1 FROM schema_migrations WHERE name = ?");
   const markApplied = database.prepare("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)");
