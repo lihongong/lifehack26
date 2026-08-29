@@ -16,7 +16,7 @@ export default function PolicyPage() {
   const [policiesLoading, setPoliciesLoading] = useState(true);
   const action = searchParams.get("action");
   const requestedReturn = searchParams.get("returnTo");
-  const returnTo = ["/", "/profile"].includes(requestedReturn) ? requestedReturn : "/profile";
+  const returnTo = ["/", "/profile", "/buffets"].includes(requestedReturn) ? requestedReturn : "/profile";
 
   useEffect(() => {
     if (!participant) return;

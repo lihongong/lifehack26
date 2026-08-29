@@ -15,7 +15,7 @@ test("uNivUS handoff awards exactly once per Singapore day across devices", asyn
   const app = await launchFromUnivus(page);
   await expect(app).toHaveURL(/\/profile\/setup$/);
   await app.getByLabel("Public display name").fill("Campus Bryan");
-  await app.getByLabel("Private NUS Zone").selectOption("Kent Ridge");
+  await app.getByLabel("Private NUS Zone").selectOption("medicine-kent-ridge");
   await app.getByRole("button", { name: "Complete profile" }).click();
   await expect(app.getByText("5 Gems")).toBeVisible();
 

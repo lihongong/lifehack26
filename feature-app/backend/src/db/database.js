@@ -11,8 +11,32 @@ export function createDatabase(
   const database = new DatabaseSync(path);
   database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
   const migrationsDir = join(currentDir, "../migrations");
-  for (const migration of readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort()) {
-    database.exec(readFileSync(join(migrationsDir, migration), "utf8"));
+  const migrations = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
+  const existingApplicationSchema = Boolean(database.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'participants'").get());
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      name TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL
+    );
+  `);
+  if (existingApplicationSchema && !database.prepare("SELECT 1 FROM schema_migrations LIMIT 1").get()) {
+    const markApplied = database.prepare("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)");
+    const appliedAt = new Date().toISOString();
+    for (const migration of migrations.filter((name) => name < "006_buffet_alerts.sql")) markApplied.run(migration, appliedAt);
+  }
+  const isApplied = database.prepare("SELECT 1 FROM schema_migrations WHERE name = ?");
+  const markApplied = database.prepare("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)");
+  for (const migration of migrations) {
+    if (isApplied.get(migration)) continue;
+    database.exec("BEGIN IMMEDIATE");
+    try {
+      database.exec(readFileSync(join(migrationsDir, migration), "utf8"));
+      markApplied.run(migration, new Date().toISOString());
+      database.exec("COMMIT");
+    } catch (error) {
+      database.exec("ROLLBACK");
+      throw error;
+    }
   }
   return database;
 }

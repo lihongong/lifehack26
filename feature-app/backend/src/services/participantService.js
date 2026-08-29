@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { withImmediateTransaction } from "../db/database.js";
+import { deliverEligibleAlerts, updateProfileZone } from "./buffetAlertService.js";
 
-const zones = new Set([null, "Kent Ridge", "Bukit Timah", "Outram"]);
 const blockedNames = new Set(["admin", "administrator", "moderator", "univus", "nus", "support"]);
 
 export function normalizeDisplayName(input) {
@@ -24,10 +25,14 @@ export function upsertParticipant(database, identity, now) {
 
 export function updateParticipantProfile(database, participantId, { displayName: input, nusZone }, now) {
   const { displayName, key } = normalizeDisplayName(input);
-  const zone = nusZone || null;
-  if (!zones.has(zone)) throw Object.assign(new Error("Invalid NUS Zone."), { status: 422 });
   try {
-    database.prepare("UPDATE participants SET display_name = ?, display_name_key = ?, nus_zone = ?, updated_at = ? WHERE id = ?").run(displayName, key, zone, now.toISOString(), participantId);
+    let zoneResult;
+    withImmediateTransaction(database, () => {
+      zoneResult = updateProfileZone(database, participantId, nusZone, now, { deliver: false });
+      database.prepare("UPDATE participants SET display_name = ?, display_name_key = ?, updated_at = ? WHERE id = ?")
+        .run(displayName, key, now.toISOString(), participantId);
+    });
+    if (zoneResult.enabled) deliverEligibleAlerts(database, now, undefined, participantId);
   } catch (error) {
     if (String(error.message).includes("UNIQUE")) throw Object.assign(new Error("Display name is already taken."), { status: 409 });
     throw error;
@@ -36,7 +41,7 @@ export function updateParticipantProfile(database, participantId, { displayName:
 }
 
 export function privateProfile(participant, gemAccount) {
-  return { id: participant.id, publicId: participant.public_id, email: participant.email, displayName: participant.display_name, nusZone: participant.nus_zone, verificationState: participant.verification_state, gemBalance: gemAccount.balance };
+  return { id: participant.id, publicId: participant.public_id, email: participant.email, displayName: participant.display_name, nusZone: participant.nus_zone, buffetAlertsEnabled: Boolean(participant.buffet_alerts_enabled), verificationState: participant.verification_state, gemBalance: gemAccount.balance };
 }
 
 export function publicProfile(database, publicId) {
