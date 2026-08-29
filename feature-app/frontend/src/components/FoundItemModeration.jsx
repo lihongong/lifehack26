@@ -44,7 +44,7 @@ export default function FoundItemModeration() {
   const act = async (operation, message) => { setError(""); setStatus(""); try { await operation(); setStatus(message); await refresh(); } catch (caught) { setError(caught.message); } };
   return <section aria-labelledby="found-item-moderation-title">
     <h2 id="found-item-moderation-title">Found-Item custody workflow</h2>
-    <p>Approve sanitized public candidates, privately arrange handover, and record physical intake. Only intake awards 20 Gems.</p>
+    <p>Approve sanitized public candidates, privately arrange handover, and record physical intake. The Participant already received 20 Gems when submitting the report.</p>
     {error && <p className="form-error" role="alert">{error}</p>}{status && <p className="action-status" role="status">{status}</p>}
     {reports.length ? <ul className="moderation-list found-custody-list">{reports.map((report) => {
       const draft = drafts[report.id]; if (!draft) return null;
@@ -73,7 +73,7 @@ export default function FoundItemModeration() {
           <label>Condition<select value={draft.condition} onChange={(event) => update(report.id, { condition: event.target.value })}><option value="good">Good</option><option value="fair">Fair</option><option value="damaged">Damaged</option><option value="unknown">Unknown</option></select></label>
           <label>Private condition notes<textarea rows="3" value={draft.conditionNotes} onChange={(event) => update(report.id, { conditionNotes: event.target.value })} /></label>
           <label>Intake reason<input value={draft.reason} onChange={(event) => update(report.id, { reason: event.target.value })} /></label>
-          <button className="primary-action" type="button" onClick={() => act(() => intakeFoundItem(report.id, { revision: report.revision, ...draft }), "Physical intake recorded and exactly 20 Gems awarded.")}>Confirm physical intake and award 20 Gems</button>
+          <button className="primary-action" type="button" onClick={() => act(() => intakeFoundItem(report.id, { revision: report.revision, ...draft }), "Physical intake recorded.")}>Confirm physical intake</button>
         </>}
       </li>;
     })}</ul> : <p>No Found-Item Reports require custody action.</p>}

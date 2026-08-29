@@ -47,7 +47,7 @@ async function createApprovedReport(api, authorCookie, moderatorCookie, suffix =
   return report.id;
 }
 
-test("physical custody replaces the sanitized report, carries Comments, and awards exactly 20 Gems", async () => {
+test("report submission awards exactly 20 Gems before physical custody", async () => {
   const database = createDatabase(":memory:");
   const author = createParticipant(database, "found-author", "Finder Fiona");
   const moderator = createParticipant(database, "found-moderator", "Custody Morgan", "moderator");
@@ -60,6 +60,7 @@ test("physical custody replaces the sanitized report, carries Comments, and awar
     const created = await api.post("/api/found-item-reports").set("Cookie", author.cookie).field(reportInput)
       .attach("photos", photo, { filename: "FOUND-FILENAME-CANARY.jpg", contentType: "image/jpeg" });
     assert.equal(created.status, 201);
+    assert.equal(created.body.report.reward.amount, 20);
     const reportId = created.body.report.id;
     const photoId = created.body.report.photos[0].id;
     assert.equal((await api.get("/api/found-item-reports")).body.reports.length, 0);
@@ -114,7 +115,7 @@ test("physical custody replaces the sanitized report, carries Comments, and awar
     assert.equal(migratedReport.target_type, "found_item"); assert.equal(migratedReport.target_id, foundItemId); assert.equal(migratedReport.target_post_id, foundItemId);
     assert.equal(migratedReport.evidence_text.includes("PRIVATE-FOUND-CANARY"), false);
 
-    const rewards = database.prepare("SELECT * FROM gem_ledger WHERE reason='FOUND_ITEM_HANDOVER' AND source_id=?").all(reportId);
+    const rewards = database.prepare("SELECT * FROM gem_ledger WHERE reason='FOUND_ITEM_REPORT' AND source_id=?").all(reportId);
     assert.equal(rewards.length, 1); assert.equal(rewards[0].amount, 20);
     assert.equal((await api.post(`/api/moderation/found-item-reports/${reportId}/intake`).set("Cookie", moderator.cookie).send({ revision: 2 })).status, 409);
     assert.equal(database.prepare("SELECT COUNT(*) AS count FROM found_items WHERE report_id=?").get(reportId).count, 1);
@@ -125,7 +126,7 @@ test("physical custody replaces the sanitized report, carries Comments, and awar
   } finally { database.close(); }
 });
 
-test("withdrawn and typed-closed reports never create Found Items or rewards", async () => {
+test("withdrawn and typed-closed reports do not add rewards beyond submission", async () => {
   const database = createDatabase(":memory:");
   const author = createParticipant(database, "found-terminal-author", "Terminal Finder");
   const moderator = createParticipant(database, "found-terminal-mod", "Terminal Custodian", "moderator");
@@ -141,11 +142,11 @@ test("withdrawn and typed-closed reports never create Found Items or rewards", a
     assert.equal((await api.post(`/api/moderation/found-item-reports/${pending.body.report.id}/close`).set("Cookie", moderator.cookie).send({ revision: 1, outcome: "abandoned", reason: "Invalid abandoned attempt." })).status, 409);
     assert.equal((await api.post(`/api/moderation/found-item-reports/${pending.body.report.id}/close`).set("Cookie", moderator.cookie).send({ revision: 1, outcome: "otherwise_closed", reason: "Duplicate report closed before review." })).status, 200);
     assert.equal(database.prepare("SELECT COUNT(*) AS count FROM found_items").get().count, 0);
-    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM gem_ledger WHERE reason='FOUND_ITEM_HANDOVER'").get().count, 0);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM gem_ledger WHERE reason='FOUND_ITEM_REPORT'").get().count, 3);
   } finally { database.close(); }
 });
 
-test("multiple verified handovers on one Singapore day each earn one reward", async () => {
+test("multiple report submissions on one Singapore day each earn one reward", async () => {
   const database = createDatabase(":memory:");
   const author = createParticipant(database, "found-multi-author", "Multiple Finder");
   const moderator = createParticipant(database, "found-multi-mod", "Multiple Custodian", "moderator");
@@ -162,8 +163,8 @@ test("multiple verified handovers on one Singapore day each earn one reward", as
       const result = await api.post(`/api/moderation/found-item-reports/${reportId}/intake`).set("Cookie", moderator.cookie).send({ revision: 2, condition: "good", conditionNotes: `Condition notes ${suffix}`, category: "Bags", foundDate: "2026-08-29", nusZoneId: "utown", publicDescription: `Sanitized found bag ${suffix} received into custody.`, approvedPhotoIds: [], reason: "Physical intake verified." });
       assert.equal(result.status, 201);
     }
-    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM gem_ledger WHERE reason='FOUND_ITEM_HANDOVER'").get().count, 2);
-    assert.equal(database.prepare("SELECT SUM(amount) AS amount FROM gem_ledger WHERE reason='FOUND_ITEM_HANDOVER'").get().amount, 40);
+    assert.equal(database.prepare("SELECT COUNT(*) AS count FROM gem_ledger WHERE reason='FOUND_ITEM_REPORT'").get().count, 2);
+    assert.equal(database.prepare("SELECT SUM(amount) AS amount FROM gem_ledger WHERE reason='FOUND_ITEM_REPORT'").get().amount, 40);
   } finally { database.close(); }
 });
 

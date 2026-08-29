@@ -2,7 +2,7 @@ import { Clock3, MapPin } from "lucide-react";
 
 const time = (value) => new Intl.DateTimeFormat("en-SG", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Singapore" }).format(new Date(value));
 
-export default function BuffetCard({ post, alert, onFeedback, feedbackPending }) {
+export default function BuffetCard({ post, alert, onFeedback, feedbackPending, participant, goingPending, onGoing }) {
   const minutesAgo = Math.max(0, Math.round((Date.now() - new Date(post.sourceTime)) / 60_000));
   return (
     <article className={`buffet-card${post.zone ? "" : " location-unclear"}`}>
@@ -17,11 +17,13 @@ export default function BuffetCard({ post, alert, onFeedback, feedbackPending })
         <MapPin aria-hidden="true" size={17} />
         <div><strong>{post.zone?.name || "Location unclear"}</strong><span>Reported as {post.reportedLocation}</span></div>
       </div>
-      <div className="buffet-expiry">
+      {post.persistentDemo ? <p className="demo-availability">Available throughout this demo</p> : <div className="buffet-expiry">
         <Clock3 aria-hidden="true" size={16} />
         <div><strong>{post.expiryBasis === "stated" ? "Collect by" : "Estimated expiry"} {time(post.expiresAt)}</strong><span>{post.expiryBasis === "fallback" ? "Two-hour fallback because no deadline was stated" : "Deadline stated in the source post"}</span></div>
-      </div>
+      </div>}
       <small>Source: {post.source} · <time dateTime={post.sourceTime}>{time(post.sourceTime)}</time></small>
+      {participant ? <button className="primary-action buffet-going-action" type="button" disabled={goingPending || post.going} onClick={() => onGoing(post.id)}>{post.going ? "✓ I’m going · Gems collected" : goingPending ? "Collecting…" : "I’m going · collect 2 Gems"}</button>
+        : <a className="primary-action buffet-going-action" href="/univus/">Sign in to collect 2 Gems</a>}
       {alert && !alert.outcome && <div className="buffet-alert-actions" aria-label={`Helpful Alert actions for ${post.title}`}>
         <span>{alert.matchType === "selected_zone" ? "Matches your selected NUS Zone" : "Matches a Nearby Zone"}</span>
         <div>

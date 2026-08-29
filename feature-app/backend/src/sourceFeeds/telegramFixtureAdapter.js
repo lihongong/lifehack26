@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { hashSourceAuthor, normalizeTelegramUpdate, stableId } from "./sourceFeedDomain.js";
 import { ingestSourceUpdate, recordSourceAuthorConsent, withdrawSourceAuthorConsent } from "../services/sourceFeedService.js";
+import { processMarketplaceSale } from "../services/marketplaceRewardService.js";
+import { GEM_REASONS } from "../services/gemService.js";
 
 const demoMarketplaceConsents = Object.freeze([
   Object.freeze({
@@ -13,6 +15,11 @@ const demoMarketplaceConsents = Object.freeze([
     externalAuthorId: "fixture-author-lock",
     displayName: "Demo Bike-Lock Seller",
     contactUrl: "https://t.me/nus_demo_bikelock_unavailable",
+  }),
+  Object.freeze({
+    externalAuthorId: "mock-univus-bryan-001",
+    displayName: "Demo Keyboard Seller",
+    contactUrl: "https://t.me/sharenus_demo_seller_unavailable",
   }),
 ]);
 
@@ -88,6 +95,38 @@ export function seedDemoMarketplaceConsents(database, identitySecret) {
       "2026-08-29T00:00:00Z",
     );
   }
+}
+
+export function seedDemoMarketplaceRewards(database, identitySecret) {
+  const now = "2026-08-29T00:00:00.000Z";
+  database.prepare(`
+    INSERT OR IGNORE INTO participants (
+      id, public_id, provider, external_subject, email, display_name,
+      display_name_key, nus_zone, verification_state, created_at, updated_at
+    ) VALUES ('fixture-marketplace-buyer', 'fixture-marketplace-buyer', 'fixture',
+      'fixture-marketplace-buyer-subject', 'fixture-marketplace-buyer@example.invalid',
+      'Demo Buyer', 'demo buyer', 'central', 'verified', ?, ?)
+  `).run(now, now);
+  const listing = database.prepare(`
+    SELECT listing.id FROM marketplace_listings listing
+    JOIN source_posts post ON post.id = listing.source_post_id
+    WHERE post.feed_id = 'telegram-marketplace-demo' AND post.author_key_hash = ?
+  `).get(hashSourceAuthor("telegram-marketplace-demo", "mock-univus-bryan-001", identitySecret));
+  if (!listing) return;
+  database.prepare(`
+    INSERT OR IGNORE INTO gem_ledger (
+      id, participant_id, amount, reason, singapore_date, source_type, source_id, created_at
+    ) VALUES ('fixture-marketplace-buyer-contact', 'fixture-marketplace-buyer', 1, ?,
+      '2026-08-29', 'marketplace_listing', ?, ?)
+  `).run(GEM_REASONS.marketplaceContact, listing.id, now);
+}
+
+export function replayDemoSoldReply(database, listingId, seller, now, identitySecret) {
+  return {
+    adapter: "telegram_fixture",
+    reply: "sold",
+    ...processMarketplaceSale(database, seller, listingId, now, identitySecret),
+  };
 }
 
 export function sourceFixtureSnapshot(database) {

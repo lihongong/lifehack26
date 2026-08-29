@@ -1,7 +1,7 @@
 import { createApp } from "./app.js";
 import { createDatabase } from "./db/database.js";
 import { createClock } from "./services/clock.js";
-import { replaySourceFixture, seedDemoMarketplaceConsents } from "./sourceFeeds/telegramFixtureAdapter.js";
+import { replaySourceFixture, seedDemoMarketplaceConsents, seedDemoMarketplaceRewards } from "./sourceFeeds/telegramFixtureAdapter.js";
 import { createLostItemCipher, DEMO_LOST_ITEM_PRIVATE_DATA_KEY } from "./services/lostItemCrypto.js";
 import { seedLostItemFixtures } from "./services/lostItemFixture.js";
 import { seedCustodyLocation } from "./services/foundItemService.js";
@@ -12,10 +12,9 @@ const lostItemPrivateDataKey = process.env.LOST_ITEM_PRIVATE_DATA_KEY ||
   (environment === "production" ? "" : DEMO_LOST_ITEM_PRIVATE_DATA_KEY);
 const database = createDatabase();
 const clock = createClock();
-if (environment !== "production" && database.prepare("SELECT 1 FROM processed_source_updates LIMIT 1").get() == null) {
-  replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
-}
+if (environment !== "production") replaySourceFixture(database, "marketplace-baseline", { identitySecret: sourceIdentitySecret });
 if (environment !== "production") seedDemoMarketplaceConsents(database, sourceIdentitySecret);
+if (environment !== "production") seedDemoMarketplaceRewards(database, sourceIdentitySecret);
 if (environment !== "production") seedLostItemFixtures(database, createLostItemCipher(lostItemPrivateDataKey));
 if (environment !== "production") seedCustodyLocation(database);
 const app = createApp({ database, clock, environment, sourceIdentitySecret, lostItemPrivateDataKey });

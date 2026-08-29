@@ -30,12 +30,27 @@ test("public controls are keyboard accessible and profile handoff is available",
   await expect(page.locator(":focus")).toBeVisible();
   await expect(page.getByRole("link", { name: /View original seller/ })).toHaveCount(0);
   await expect(page.getByText("Author attribution withheld")).toHaveCount(2);
-  await expect(page.getByRole("link", { name: /Telegram/ })).toHaveCount(2);
-  await expect(page.getByRole("link", { name: /Telegram/ }).first()).toHaveAttribute("href", /t\.me\/nus_demo_/);
+  await expect(page.getByRole("link", { name: /Telegram/ })).toHaveCount(3);
+  await expect(page.getByRole("link", { name: /Telegram/ }).first()).toHaveAttribute("href", /t\.me\//);
 });
 
 test("listing image has an accessible fallback", async ({ page }) => {
   await page.route("**/images/listings/*.svg", (route) => route.abort());
   await page.goto("/");
   await expect(page.getByText("Image unavailable").first()).toBeVisible();
+});
+
+test("the seeded seller can simulate a sold reply and collect 30 Gems", async ({ page }) => {
+  const launch = await page.request.post("/api/integrations/univus/launch", { headers: { "x-demo-identity": "operator" } });
+  await page.goto((await launch.json()).launchUrl);
+  await page.getByLabel("Public display name").fill("Demo Keyboard Seller");
+  await page.getByRole("button", { name: "Complete profile" }).click();
+  await page.goto("/");
+  await page.getByRole("searchbox", { name: "Search listings" }).fill("mechanical keyboard");
+  const listing = page.getByRole("article").filter({ hasText: "Compact mechanical keyboard" });
+  await listing.getByRole("button", { name: /simulate Telegram/ }).click();
+  await expect(listing.getByRole("status").filter({ hasText: "+30 Gems" })).toBeVisible();
+  await page.goto("/profile");
+  await expect(page.getByText("30 Gems")).toBeVisible();
+  await expect(page.getByText("Marketplace seller sale reward")).toBeVisible();
 });

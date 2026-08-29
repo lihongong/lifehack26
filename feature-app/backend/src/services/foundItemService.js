@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { nusZones } from "../data/nusZones.js";
 import { withImmediateTransaction } from "../db/database.js";
 import { LOST_ITEM_CATEGORIES } from "./lostItemService.js";
-import { awardFoundItemHandover } from "./gemService.js";
+import { awardFoundItemReport } from "./gemService.js";
 import { recordAudit, validateReason } from "./privilegeService.js";
 
 const categories = new Set(LOST_ITEM_CATEGORIES);
@@ -133,7 +133,7 @@ function participantReport(database, cipher, row) {
   const approvedPhotoIds = approval ? database.prepare("SELECT photo_id FROM found_item_report_review_photos WHERE review_id=? ORDER BY photo_id").all(approval.id).map(({ photo_id }) => photo_id) : [];
   const closure = database.prepare("SELECT outcome, reason, created_at FROM found_item_report_closures WHERE report_id = ?").get(row.id);
   const foundItem = database.prepare("SELECT id, received_at FROM found_items WHERE report_id = ?").get(row.id);
-  const reward = database.prepare("SELECT amount, created_at FROM gem_ledger WHERE reason = 'FOUND_ITEM_HANDOVER' AND source_type = 'found_item_report' AND source_id = ?").get(row.id);
+  const reward = database.prepare("SELECT amount, created_at FROM gem_ledger WHERE reason = 'FOUND_ITEM_REPORT' AND source_type = 'found_item_report' AND source_id = ?").get(row.id);
   return {
     id: row.id, category: row.category, foundDate: row.found_date, nusZone: zones.get(row.nus_zone_id),
     description: payload.description, privateIdentifyingDetails: payload.privateIdentifyingDetails,
@@ -142,7 +142,8 @@ function participantReport(database, cipher, row) {
     approvedPublic: approval ? { category: approval.public_category, foundDate: approval.public_found_date, nusZoneId: approval.public_nus_zone_id, description: approval.public_description, approvedPhotoIds } : null,
     closure: closure ? { outcome: closure.outcome, reason: closure.reason, closedAt: closure.created_at } : null,
     appointment: privateAppointment(latestAppointment(database, row.id)),
-    intake: foundItem ? { foundItemId: foundItem.id, receivedAt: foundItem.received_at, reward: reward ? { amount: reward.amount, awardedAt: reward.created_at } : null } : null,
+    reward: reward ? { awarded: true, status: "awarded", amount: reward.amount, awardedAt: reward.created_at } : null,
+    intake: foundItem ? { foundItemId: foundItem.id, receivedAt: foundItem.received_at } : null,
     createdAt: row.created_at, updatedAt: row.updated_at, withdrawnAt: row.withdrawn_at || null,
   };
 }
@@ -240,6 +241,7 @@ export function createFoundItemReport(database, cipher, participant, input, sani
       .run(id, participant.participant_id, value.category, value.foundDate, value.nusZoneId, timestamp, timestamp);
     storePayload(database, cipher, id, 1, value);
     sanitizedPhotos.forEach((photo, index) => insertPhoto(database, cipher, id, 1, index, photo));
+    awardFoundItemReport(database, participant.participant_id, id, now);
   });
   return participantReport(database, cipher, database.prepare("SELECT * FROM found_item_reports WHERE id = ?").get(id));
 }
@@ -476,10 +478,9 @@ export function intakeFoundItem(database, cipher, actorId, reportId, input, now)
     const moderation = database.prepare("SELECT * FROM found_property_moderation WHERE target_type='found_item_report' AND target_id=?").get(reportId);
     if (moderation) database.prepare("INSERT INTO found_property_moderation VALUES ('found_item',?,?,?,?,?)")
       .run(foundItemId, moderation.hidden, moderation.reason, moderation.updated_by_participant_id, moderation.updated_at);
-    awardFoundItemHandover(database, row.author_participant_id, reportId, now);
     recordAudit(database, { eventType: "found_item_received_into_custody", actorId, targetType: "found_item", targetId: foundItemId, reason, selfDirected: actorId === row.author_participant_id }, now);
   });
-  return { foundItem: getPublicFoundItem(database, foundItemId), reward: { amount: 20, participantId: row.author_participant_id, reportId } };
+  return { foundItem: getPublicFoundItem(database, foundItemId) };
 }
 
 function decryptPhoto(database, cipher, photoId, condition, args = []) {

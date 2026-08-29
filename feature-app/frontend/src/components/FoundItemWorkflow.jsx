@@ -11,6 +11,7 @@ import {
 import CommentThread from "./CommentThread.jsx";
 import ReportControl from "./ReportControl.jsx";
 import { DateControl, SelectControl } from "./PropertyControls.jsx";
+import GemRewardToast from "./GemRewardToast.jsx";
 
 const categories = ["Electronics", "Wallets & Cards", "Keys", "Bags", "Clothing", "Accessories", "Documents", "Other"];
 const zones = [["utown", "UTown"], ["museum-ucc", "Museum/UCC"], ["cde", "CDE"], ["central", "Central"], ["fass", "FASS"], ["business", "Business"], ["computing", "Computing"], ["pgp", "PGP"], ["science", "Science"], ["medicine-kent-ridge", "Medicine/Kent Ridge MRT"]];
@@ -18,7 +19,7 @@ const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Singapore
 const blank = () => ({ category: "Other", foundDate: today(), nusZoneId: "central", description: "", privateIdentifyingDetails: "", retainedPhotoIds: [] });
 
 export default function FoundItemWorkflow({ onChanged }) {
-  const { participant } = useAuth();
+  const { participant, refresh } = useAuth();
   const navigate = useNavigate();
   const [mine, setMine] = useState([]);
   const [draft, setDraft] = useState(blank);
@@ -27,6 +28,7 @@ export default function FoundItemWorkflow({ onChanged }) {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [reward, setReward] = useState(null);
   const loadMine = async () => participant && setMine((await getMyFoundItemReports()).reports);
 
   useEffect(() => {
@@ -62,8 +64,10 @@ export default function FoundItemWorkflow({ onChanged }) {
         await replaceFoundItemReport(editingId, { ...draft, revision: current.revision, retainedPhotoIds: JSON.stringify(draft.retainedPhotoIds) }, files);
         setStatus("Found-Item Report updated and returned to review.");
       } else {
-        await createFoundItemReport(draft, files);
-        setStatus("Found-Item Report submitted privately for review.");
+        const result = await createFoundItemReport(draft, files);
+        setReward(result.report.reward);
+        setStatus("Found-Item Report submitted privately for review · 20 Gems collected.");
+        await refresh();
       }
       reset();
       await loadMine();
@@ -77,6 +81,7 @@ export default function FoundItemWorkflow({ onChanged }) {
   return <section className="participant-property-workflow found-participant-workflow" aria-labelledby="found-report-form-title">
     {error && <p className="form-error" role="alert">{error}</p>}
     {status && <p className="action-status" role="status">{status}</p>}
+    <GemRewardToast reward={reward} message="Thank you for reporting found property." />
     <form id="found-item-report-form" className="lost-item-form" onSubmit={submit}>
       <div><p className="eyebrow">YOU FOUND AN ITEM</p><h2 id="found-report-form-title">{editingId ? "Update found-item report" : "Tell us what you found"}</h2><p>Share where and when you found it. Identifying details stay private and help with later ownership checks.</p></div>
       <SelectControl label="Found category" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} options={categories.map((value) => [value, value])} />
@@ -86,12 +91,12 @@ export default function FoundItemWorkflow({ onChanged }) {
       <label>Private identifying details <small>Marks, contents, serial details, or anything useful for checking ownership</small><textarea required minLength="3" rows="4" value={draft.privateIdentifyingDetails} onChange={(event) => setDraft({ ...draft, privateIdentifyingDetails: event.target.value })} /></label>
       {editingId && mine.find(({ id }) => id === editingId)?.photos.length > 0 && <fieldset className="retained-photos"><legend>Keep existing photos</legend>{mine.find(({ id }) => id === editingId).photos.map((photo) => <label key={photo.id}><input type="checkbox" checked={draft.retainedPhotoIds.includes(photo.id)} onChange={(event) => setDraft({ ...draft, retainedPhotoIds: event.target.checked ? [...draft.retainedPhotoIds, photo.id] : draft.retainedPhotoIds.filter((id) => id !== photo.id) })} /><img src={photo.url} alt="Private sanitized Found-Item preview" /></label>)}</fieldset>}
       <label>Photos <small>Optional, up to three. Metadata is stripped before encrypted storage.</small><input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setFiles([...event.target.files].slice(0, 3))} /></label>
-      <div className="lost-item-form-actions"><button className="primary-action" disabled={busy}>{busy ? "Submitting…" : editingId ? "Update and resubmit" : "Submit found-item report"}</button>{editingId && <button type="button" className="secondary-action" onClick={reset}>Cancel edit</button>}</div>
+      <div className="lost-item-form-actions"><button className="primary-action" disabled={busy}>{busy ? "Submitting…" : editingId ? "Update and resubmit" : "Submit found-item report · collect 20 Gems"}</button>{!editingId && <button type="button" className="secondary-action" onClick={() => setDraft({ category: "Accessories", foundDate: today(), nusZoneId: "central", description: "Fictional blue water bottle found beside the Central Library entrance.", privateIdentifyingDetails: "Demo-only detail: small star sticker beneath the bottle.", retainedPhotoIds: [] })}>Load fictional demo details</button>}{editingId && <button type="button" className="secondary-action" onClick={reset}>Cancel edit</button>}</div>
     </form>
     <MyFoundItemReports reports={mine} onEdit={edit} onWithdraw={async (reportId) => {
       try {
         await withdrawFoundItemReport(reportId);
-        setStatus("Found-Item Report withdrawn without a reward.");
+        setStatus("Found-Item Report withdrawn. No additional Gems were awarded.");
         await loadMine();
         await onChanged?.();
       } catch (caught) { setError(caught.message); }
@@ -106,7 +111,7 @@ function MyFoundItemReports({ reports, onEdit, onWithdraw }) {
     {report.rejectionReason && <p className="rejection-reason">Moderator reason: {report.rejectionReason}</p>}
     {report.closure && <p className="rejection-reason">Closed: {report.closure.outcome.replaceAll("_", " ")} · {report.closure.reason}</p>}
     {report.appointment && <div className="source-snapshot"><strong>Private handover appointment</strong><br />{report.appointment.custodyLocation.name}<br />{new Date(report.appointment.appointmentAt).toLocaleString("en-SG", { timeZone: "Asia/Singapore" })}<br />{report.appointment.instructions}</div>}
-    {report.intake?.reward && <p className="reward-note">Physical intake verified · +{report.intake.reward.amount} Gems</p>}
+    {report.reward && <p className="reward-note">Report submitted · +{report.reward.amount} Gems</p>}
     <div className="management-actions">{["pending_review", "rejected"].includes(report.status) && <button type="button" className="secondary-action" onClick={() => onEdit(report)}>Edit report</button>}{!["withdrawn", "closed", "received"].includes(report.status) && <button type="button" className="danger-action" onClick={() => onWithdraw(report.id)}>Withdraw before handover</button>}</div>
   </li>)}</ul> : <p>No found-item reports yet.</p>}</section>;
 }

@@ -2,33 +2,34 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createDatabase } from "../backend/src/db/database.js";
 import { completeLaunch, createLaunchAssertion, resolveSession, sessionPayload } from "../backend/src/services/authService.js";
-import { getGemAccount } from "../backend/src/services/gemService.js";
+import { awardFoundItemReport, getGemAccount } from "../backend/src/services/gemService.js";
 import { publicProfile, updateParticipantProfile } from "../backend/src/services/participantService.js";
 
 const identity = { subject: "test-univus-001", email: "participant@example.nus.edu.sg" };
 const firstVisit = new Date("2026-08-29T15:59:00Z");
 
-test("launch is one-time, verifies participant, and awards once per Singapore day", () => {
+test("launch is one-time and verifies a participant without a login reward", () => {
   const database = createDatabase(":memory:");
   const token = createLaunchAssertion(database, identity, firstVisit);
   const { participant, session } = completeLaunch(database, token, firstVisit);
   assert.equal(participant.verification_state, "verified");
-  assert.equal(getGemAccount(database, participant.id).balance, 5);
+  assert.equal(getGemAccount(database, participant.id).balance, 0);
   assert.throws(() => completeLaunch(database, token, firstVisit), /invalid or expired/);
   resolveSession(database, session.rawToken, new Date("2026-08-29T15:59:30Z"));
-  assert.equal(getGemAccount(database, participant.id).balance, 5);
+  assert.equal(getGemAccount(database, participant.id).balance, 0);
   resolveSession(database, session.rawToken, new Date("2026-08-29T16:00:00Z"));
-  assert.equal(getGemAccount(database, participant.id).balance, 10);
-  assert.equal(getGemAccount(database, participant.id).entries.length, 2);
+  assert.equal(getGemAccount(database, participant.id).balance, 0);
+  assert.equal(getGemAccount(database, participant.id).entries.length, 0);
   database.close();
 });
 
 test("ledger is immutable and balance comes from ledger entries", () => {
   const database = createDatabase(":memory:");
   const { participant } = completeLaunch(database, createLaunchAssertion(database, identity, firstVisit), firstVisit);
+  awardFoundItemReport(database, participant.id, "report-for-immutability", firstVisit);
   assert.throws(() => database.prepare("UPDATE gem_ledger SET amount = 500 WHERE participant_id = ?").run(participant.id), /immutable/);
   assert.throws(() => database.prepare("DELETE FROM gem_ledger WHERE participant_id = ?").run(participant.id), /immutable/);
-  assert.equal(sessionPayload(database, participant).gemBalance, 5);
+  assert.equal(sessionPayload(database, participant).gemBalance, 20);
   database.close();
 });
 

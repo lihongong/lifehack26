@@ -62,6 +62,20 @@
           "text": "Title: Adjustable study lamp\nPrice: $18\nDescription: Warm LED desk lamp for late-night study sessions.\nTelegram: https://t.me/private_lamp_seller"
         }
       }
+    },
+    {
+      "type": "telegram_update",
+      "at": "2026-08-29T09:05:00Z",
+      "update": {
+        "update_id": 1005,
+        "message": {
+          "message_id": 505,
+          "date": 1787994300,
+          "chat": { "username": "nus_marketplace_demo" },
+          "from": { "id": "mock-univus-bryan-001", "first_name": "Demo Keyboard Seller", "username": "sharenus_demo_seller_unavailable" },
+          "text": "Title: Compact mechanical keyboard\nCategory: Electronics\nPrice: $35\nDescription: Fictional hot-swappable keyboard prepared for the Gem sale demo.\nTelegram: https://t.me/sharenus_demo_seller_unavailable"
+        }
+      }
     }
   ]
 }

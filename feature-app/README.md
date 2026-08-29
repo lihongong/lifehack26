@@ -27,13 +27,19 @@ Set `SOURCE_ID_HASH_SECRET` in production before processing any Source Feed auth
 ## Public Buffet feed
 
 Anonymous visitors can browse fictional active Buffet Posts at `/buffets` and filter them by search text, exact NUS Zone, unclear location, and freshness.
-Posts expire at a stated collection deadline or use a two-hour fallback from their source time.
+Fictional fixture posts remain available throughout a demo; future non-fictional posts expire at a stated collection deadline or use a two-hour fallback.
 The browser refreshes the feed every 30 seconds.
 
 The public endpoint is `GET /api/buffets?query=&zone=&freshness=`, where freshness is `active`, `30`, or `60` and zone is `all`, `unclear`, or a canonical zone ID.
 The response includes the `nus-zones-v1` static aliases and adjacency graph for later Nearby Zone features.
 
-For a manual smoke test, open `/buffets` without signing in, search for `vegetarian`, filter Science and Location unclear, compare the three freshness options, and verify every card shows either Collect by or Estimated expiry.
+For a manual smoke test, open `/buffets`, verify fixture cards say `Available throughout this demo`, sign in, and collect 2 Gems from three distinct “I’m going” buttons. A fourth shows the daily limit.
+
+## Gem rewards
+
+The private profile balance comes only from immutable Gem Ledger entries. A Participant earns 2 Gems for up to three distinct Buffet Posts daily, 1 Gem for up to three distinct Marketplace contacts daily, and 20 Gems once when submitting each Found-Item Report. Daily login and physical intake do not award Gems.
+
+The fictional keyboard Marketplace Listing belongs to the default demo Operator. Its development-only `simulate Telegram “sold” reply` button pairs the seller with the seeded Demo Buyer and awards 30 Gems to each, subject to each Participant's three-sale daily limit. Processed sales are exact-once and leave the active feed.
 
 ## Protected community actions
 
@@ -95,7 +101,7 @@ Key discussion and reporting endpoints:
 ## Source Feed fixtures and gates
 
 Marketplace demonstration data is replayed through an allowlisted Telegram-style fixture without a live chat, token, or network request.
-Non-production startup and reset also seed fictional display-name and Telegram-contact consent for the monitor and bike-lock authors, so the public demo includes two working contact buttons while the other authors remain withheld.
+Non-production startup and reset also seed fictional display-name and Telegram-contact consent for the monitor, bike-lock, and Gem-demo keyboard authors, while the other authors remain withheld.
 Representative Telegram message text is parsed offline with deterministic labeled-field and controlled-keyword rules for Study, Room & Living, Transport, and Electronics.
 Raw author identity, contact lines, and source-message text are not persisted; contact-like text is removed before normalized Listings or safe discrepancy candidates are stored.
 Replay the deterministic baseline or another bundled scenario with:

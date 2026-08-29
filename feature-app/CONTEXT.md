@@ -43,14 +43,14 @@ Monotonic source edits and deletions propagate automatically, while stale, diver
 
 A Moderator records author consent separately from Source Feed permission, with independent public display-name and contact scopes and a private evidence reference.
 Public Marketplace responses omit source identifiers, author identity, and contact data unless active scoped consent permits the relevant attribution.
-Non-production startup and reset idempotently seed fictional name-and-contact consent for the monitor and bike-lock fixture authors, leaving calculator and lamp attribution withheld; production never receives these demonstration consents.
+Non-production startup and reset idempotently seed fictional name-and-contact consent for the monitor, bike-lock, and Gem-demo keyboard fixture authors, leaving calculator and lamp attribution withheld; production never receives these demonstration consents.
 Consent withdrawal synchronously removes imported content, scrubs stored identity, contact, and evidence fields, redacts staged discrepancy content, and leaves only non-identifying operational records.
 Gate, consent, and discrepancy decisions are written to the immutable Platform Operator audit trail.
 
 ## Public Buffet feed and NUS Zones
 
 The anonymous Buffet feed uses fictional posts anchored once at application startup and served through `GET /api/buffets`.
-Posts expire at their stated collection deadline or exactly two hours after their source time when no deadline is stated.
+Seeded fictional Buffet Posts remain available throughout a demo and display no expiry countdown. Future non-fictional posts retain the stated collection deadline or two-hour fallback expiry behavior.
 The public feed supports text search, exact-zone filtering, `Location unclear`, and Active, 30-minute, or 60-minute freshness filters.
 Ambiguous locations remain visible under All zones and Location unclear but never match a canonical NUS Zone.
 The frontend refreshes the feed every 30 seconds so newly expired posts disappear without authentication.
@@ -68,10 +68,20 @@ Approved reports may receive a private, revisioned handover appointment only whe
 Deactivating the final active Custody Location or revoking procedure approval disables custody automatically without altering immutable appointment snapshots.
 
 The existing Moderator role acts as Custodian for this tracer bullet.
-Only server-recorded physical intake creates a Found Item and an exactly-once 20-Gem `FOUND_ITEM_HANDOVER` ledger entry linked to its originating Found-Item Report.
+Creating a Found-Item Report atomically creates an exactly-once 20-Gem `FOUND_ITEM_REPORT` ledger entry linked to that report.
 Intake atomically snapshots encrypted private evidence and condition notes, retains all sanitized photos privately, publishes only the intake-approved subset, marks the report received, and moves its public Comment thread and open Content Reports to the Found Item.
-Withdrawal, rejection, approval, arranged handover, abandonment, and other closure never award Gems.
+Editing, withdrawal, rejection, approval, arranged handover, physical intake, abandonment, and other closure never add another reward.
 Found Items expose the controlled condition value publicly, while Participant identity, original text, Private Identifying Details, custody evidence, appointment details, location instructions, and condition notes remain private.
+
+## Gem participation rewards
+
+The immutable Gem Ledger is the source of truth for balances and enforces one reward per Participant, reason, and source record.
+Selecting “I’m going” awards 2 Gems for each distinct active Buffet Post, with at most three rewarded Buffet Posts per Singapore day.
+Opening a consented Marketplace contact awards 1 Gem for each distinct Marketplace Listing, with at most three rewarded contacts per Singapore day; anonymous visitors may still open the contact without a reward.
+A detected sale awards 30 Gems each to its buyer and seller, with at most three sale rewards per Participant per Singapore day across buyer and seller roles.
+The non-production Telegram fixture adapter provides one seller-owned keyboard listing, one seeded Demo Buyer contact, and an owner-only “sold” reply control so the sale flow is demonstrable without live Telegram or WhatsApp access.
+Processed sales are exact-once and disappear from the active public Marketplace feed. Production exposes no simulated sold endpoint.
+Daily uNivUS login and physical Found-Item intake no longer award Gems; immutable historical entries remain readable.
 
 ## Private Buffet Alerts and Helpful Alert review
 

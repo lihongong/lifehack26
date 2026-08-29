@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { singaporeDate } from "./clock.js";
 
-export function awardDailyLogin(database, participantId, now) {
-  const timestamp = now.toISOString();
-  const result = database.prepare("INSERT OR IGNORE INTO gem_ledger (id, participant_id, amount, reason, singapore_date, created_at) VALUES (?, ?, 5, 'DAILY_LOGIN', ?, ?)").run(randomUUID(), participantId, singaporeDate(now), timestamp);
-  return result.changes === 1;
-}
+export const GEM_REASONS = Object.freeze({
+  buffetGoing: "BUFFET_GOING",
+  marketplaceContact: "MARKETPLACE_CONTACT",
+  marketplaceSaleBuyer: "MARKETPLACE_SALE_BUYER",
+  marketplaceSaleSeller: "MARKETPLACE_SALE_SELLER",
+  foundItemReport: "FOUND_ITEM_REPORT",
+});
 
 export function getGemAccount(database, participantId) {
   const { balance } = database.prepare("SELECT COALESCE(SUM(amount), 0) AS balance FROM gem_ledger WHERE participant_id = ?").get(participantId);
@@ -13,10 +15,33 @@ export function getGemAccount(database, participantId) {
   return { balance, entries };
 }
 
-export function awardFoundItemHandover(database, participantId, reportId, now) {
-  return database.prepare(`
-    INSERT INTO gem_ledger (
-      id, participant_id, amount, reason, singapore_date, source_type, source_id, created_at
-    ) VALUES (?, ?, 20, 'FOUND_ITEM_HANDOVER', ?, 'found_item_report', ?, ?)
-  `).run(randomUUID(), participantId, singaporeDate(now), reportId, now.toISOString());
+export function awardGems(database, { participantId, amount, reason, sourceType, sourceId, now, dailyLimit = null, dailyReasons = [reason] }) {
+  const existing = database.prepare(`
+    SELECT 1 FROM gem_ledger
+    WHERE participant_id = ? AND reason = ? AND source_type = ? AND source_id = ?
+  `).get(participantId, reason, sourceType, sourceId);
+  const date = singaporeDate(now);
+  const placeholders = dailyReasons.map(() => "?").join(",");
+  const dailyCount = database.prepare(`
+    SELECT COUNT(*) AS count FROM gem_ledger
+    WHERE participant_id = ? AND singapore_date = ? AND reason IN (${placeholders})
+  `).get(participantId, date, ...dailyReasons).count;
+  if (existing) return { awarded: false, status: "already_collected", amount: 0, dailyCount, dailyLimit };
+  if (dailyLimit !== null && dailyCount >= dailyLimit) return { awarded: false, status: "daily_limit_reached", amount: 0, dailyCount, dailyLimit };
+  database.prepare(`
+    INSERT INTO gem_ledger (id, participant_id, amount, reason, singapore_date, source_type, source_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(randomUUID(), participantId, amount, reason, date, sourceType, sourceId, now.toISOString());
+  return { awarded: true, status: "awarded", amount, dailyCount: dailyCount + 1, dailyLimit };
+}
+
+export function awardFoundItemReport(database, participantId, reportId, now) {
+  return awardGems(database, {
+    participantId,
+    amount: 20,
+    reason: GEM_REASONS.foundItemReport,
+    sourceType: "found_item_report",
+    sourceId: reportId,
+    now,
+  });
 }

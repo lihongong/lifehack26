@@ -9,7 +9,7 @@ async function launchFromUnivus(page) {
   return app;
 }
 
-test("uNivUS handoff awards exactly once per Singapore day across devices", async ({ page, browser }) => {
+test("uNivUS handoff creates one shared profile without login Gems", async ({ page, browser }) => {
   await page.request.post("/api/dev/reset");
   await page.request.post("/api/dev/clock", { data: { now: "2026-08-29T15:59:00Z" } });
   const app = await launchFromUnivus(page);
@@ -17,18 +17,18 @@ test("uNivUS handoff awards exactly once per Singapore day across devices", asyn
   await app.getByLabel("Public display name").fill("Campus Bryan");
   await app.getByLabel("Private NUS Zone").selectOption("medicine-kent-ridge");
   await app.getByRole("button", { name: "Complete profile" }).click();
-  await expect(app.getByText("5 Gems")).toBeVisible();
+  await expect(app.getByText("0 Gems")).toBeVisible();
 
   const secondContext = await browser.newContext();
   const secondHomepage = await secondContext.newPage();
   const secondApp = await launchFromUnivus(secondHomepage);
   await secondApp.goto("/profile");
-  await expect(secondApp.getByText("5 Gems")).toBeVisible();
+  await expect(secondApp.getByText("0 Gems")).toBeVisible();
 
   await app.request.post("/api/dev/clock", { data: { now: "2026-08-29T16:00:00Z" } });
   await secondApp.reload();
-  await expect(secondApp.getByText("10 Gems")).toBeVisible();
-  await expect(secondApp.getByText(/Daily login award/)).toHaveCount(2);
+  await expect(secondApp.getByText("0 Gems")).toBeVisible();
+  await expect(secondApp.getByText(/Daily login award/)).toHaveCount(0);
 
   const publicUrl = await secondApp.getByRole("link", { name: "View public profile" }).getAttribute("href");
   const anonymousContext = await browser.newContext();
