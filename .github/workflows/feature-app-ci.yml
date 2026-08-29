@@ -41,7 +41,7 @@ jobs:
         run: npm run install:all
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium --prefix e2e
+        run: npm exec --prefix e2e -- playwright install --with-deps chromium webkit
 
       - name: Run backend tests
         run: npm run test
