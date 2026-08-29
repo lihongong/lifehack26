@@ -34,7 +34,7 @@ test("submission awards 20 Gems and physical handover preserves the report and C
   await expect(submit.locator(".gem-amount")).toContainText("+20");
   await submit.click();
   await expect(page.getByRole("status").filter({ hasText: "submitted privately" })).toBeVisible();
-  await expect(page.getByRole("status").filter({ hasText: "+20 Gems" })).toBeVisible();
+  await expect(form.locator(".gem-reward-toast").filter({ hasText: "+20 Gems" })).toBeVisible();
 
   const operatorContext = await browser.newContext();
   const operatorPage = await operatorContext.newPage();
