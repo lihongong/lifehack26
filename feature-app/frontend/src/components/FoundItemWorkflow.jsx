@@ -8,7 +8,6 @@ import {
   replaceFoundItemReport,
   withdrawFoundItemReport,
 } from "../api/foundItemApi.js";
-import CommentThread from "./CommentThread.jsx";
 import ReportControl from "./ReportControl.jsx";
 import { DateControl, SelectControl } from "./PropertyControls.jsx";
 
@@ -116,6 +115,6 @@ export function FoundPropertyCard({ value, type }) {
   const foundDate = new Intl.DateTimeFormat("en-SG", { dateStyle: "medium" }).format(new Date(`${value.foundDate}T12:00:00+08:00`));
   return <article className="listing-card lost-item-card found-property-card">
     <div className="lost-item-gallery">{value.photos.length ? value.photos.map((photo) => <img key={photo.id} src={photo.url} alt={photo.alt} />) : <div className="listing-image is-fallback"><ImageOff aria-hidden="true" /><span>No public photo</span></div>}</div>
-    <div className="listing-content"><div className="listing-top"><span className="category">{value.category}</span><span className="status-badge">{isItem ? "In custody" : "Found"}</span></div><h3>{isItem ? "Found Item" : "Found-Item Report"}</h3>{value.handoverArranged && <p className="handover-note">Handover has been arranged privately.</p>}{value.fictional && <span className="fictional-note">Fictional fixture</span>}<p>{value.description}</p><div className="lost-item-facts"><span><CalendarDays size={15} aria-hidden="true" />Found {foundDate}</span><span><MapPin size={15} aria-hidden="true" />{value.nusZone.name}</span>{isItem && <span><PackageCheck size={15} aria-hidden="true" />Condition: {value.condition}</span>}</div><ReportControl targetType={type} targetId={value.id} label={`Report ${isItem ? "Found Item" : "Found-Item Report"}`} /><CommentThread post={value} postType={type} label={isItem ? "Found Item" : "Found-Item Report"} /></div>
+    <div className="listing-content"><div className="listing-top"><span className="category">{value.category}</span><span className="status-badge">{isItem ? "In custody" : "Found"}</span></div><h3>{isItem ? "Found Item" : "Found-Item Report"}</h3>{value.handoverArranged && <p className="handover-note">Handover has been arranged privately.</p>}{value.fictional && <span className="fictional-note">Fictional fixture</span>}<p>{value.description}</p><div className="lost-item-facts"><span><CalendarDays size={15} aria-hidden="true" />Found {foundDate}</span><span><MapPin size={15} aria-hidden="true" />{value.nusZone.name}</span>{isItem && <span><PackageCheck size={15} aria-hidden="true" />Condition: {value.condition}</span>}</div><ReportControl targetType={type} targetId={value.id} label={`Report ${isItem ? "Found Item" : "Found-Item Report"}`} /></div>
   </article>;
 }

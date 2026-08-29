@@ -10,7 +10,6 @@ import {
   withdrawLostItemPost,
 } from "../api/lostItemApi.js";
 import { getFoundItemReports, getFoundItems } from "../api/foundItemApi.js";
-import CommentThread from "./CommentThread.jsx";
 import ReportControl from "./ReportControl.jsx";
 import FoundItemWorkflow, { FoundPropertyCard } from "./FoundItemWorkflow.jsx";
 import { DateControl, PropertyFilterPanel, SelectControl } from "./PropertyControls.jsx";
@@ -184,6 +183,6 @@ function LostItemWorkflowForm({ draft, setDraft, setFiles, editingId, mine, busy
 function LostItemCard({ post }) {
   return <article className="listing-card lost-item-card">
     <div className="lost-item-gallery">{post.photos.length ? post.photos.map((photo) => <img key={photo.id} src={photo.url} width={photo.width} height={photo.height} alt={photo.alt} />) : <div className="listing-image is-fallback"><ImageOff aria-hidden="true" size={30} /><span>No public photo</span></div>}</div>
-    <div className="listing-content"><div className="listing-top"><span className="category">{post.category}</span><span className="status-badge lost-status">Lost</span></div>{post.fictional && <span className="fictional-note">Fictional demo post</span>}<div className="lost-item-facts"><span><CalendarDays size={15} aria-hidden="true" />Lost {new Intl.DateTimeFormat("en-SG", { dateStyle: "medium" }).format(new Date(`${post.lostDate}T12:00:00+08:00`))}</span><span><MapPin size={15} aria-hidden="true" />{post.nusZone.name}</span></div><p>{post.description}</p><small className="publication-time">Published {new Intl.DateTimeFormat("en-SG", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Singapore" }).format(new Date(post.publishedAt))}</small><ReportControl targetType="lost_item_post" targetId={post.id} label="Report Lost-Item Post" /><CommentThread post={post} postType="lost_item_post" /></div>
+    <div className="listing-content"><div className="listing-top"><span className="category">{post.category}</span><span className="status-badge lost-status">Lost</span></div>{post.fictional && <span className="fictional-note">Fictional demo post</span>}<div className="lost-item-facts"><span><CalendarDays size={15} aria-hidden="true" />Lost {new Intl.DateTimeFormat("en-SG", { dateStyle: "medium" }).format(new Date(`${post.lostDate}T12:00:00+08:00`))}</span><span><MapPin size={15} aria-hidden="true" />{post.nusZone.name}</span></div><p>{post.description}</p><small className="publication-time">Published {new Intl.DateTimeFormat("en-SG", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Singapore" }).format(new Date(post.publishedAt))}</small><ReportControl targetType="lost_item_post" targetId={post.id} label="Report Lost-Item Post" /></div>
   </article>;
 }
