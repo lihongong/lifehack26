@@ -46,9 +46,12 @@ test("the seeded seller can simulate a sold reply and collect 30 Gems", async ({
   await page.getByLabel("Public display name").fill("Demo Keyboard Seller");
   await page.getByRole("button", { name: "Complete profile" }).click();
   await page.goto("/");
+  await expect(page.getByRole("link", { name: /earn 1 Gem/ }).first().locator(".gem-amount")).toContainText("+1");
   await page.getByRole("searchbox", { name: "Search listings" }).fill("mechanical keyboard");
   const listing = page.getByRole("article").filter({ hasText: "Compact mechanical keyboard" });
-  await listing.getByRole("button", { name: /simulate Telegram/ }).click();
+  const sold = listing.getByRole("button", { name: /simulate Telegram/ });
+  await expect(sold.locator(".gem-amount")).toContainText("+30");
+  await sold.click();
   await expect(listing.getByRole("status").filter({ hasText: "+30 Gems" })).toBeVisible();
   await page.goto("/profile");
   await expect(page.getByText("30 Gems")).toBeVisible();

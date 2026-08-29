@@ -30,7 +30,9 @@ test("submission awards 20 Gems and physical handover preserves the report and C
   await form.getByLabel(/What did you find/).fill("FOUND-ORIGINAL-E2E-CANARY navy bag discovered beside the UTown study area.");
   await form.getByLabel(/Private identifying details/i).fill("FOUND-PRIVATE-E2E-CANARY unique fictional lining and keychain.");
   await form.getByLabel(/^Photos/).setInputFiles({ name: "FOUND-FILENAME-E2E-CANARY.png", mimeType: "image/png", buffer: onePixelPng });
-  await form.getByRole("button", { name: "Submit found-item report" }).click();
+  const submit = form.getByRole("button", { name: /Submit found-item report/ });
+  await expect(submit.locator(".gem-amount")).toContainText("+20");
+  await submit.click();
   await expect(page.getByRole("status").filter({ hasText: "submitted privately" })).toBeVisible();
   await expect(page.getByRole("status").filter({ hasText: "+20 Gems" })).toBeVisible();
 

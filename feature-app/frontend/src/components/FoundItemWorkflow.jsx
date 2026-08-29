@@ -11,7 +11,7 @@ import {
 import CommentThread from "./CommentThread.jsx";
 import ReportControl from "./ReportControl.jsx";
 import { DateControl, SelectControl } from "./PropertyControls.jsx";
-import GemRewardToast from "./GemRewardToast.jsx";
+import GemRewardToast, { GemAmount } from "./GemRewardToast.jsx";
 
 const categories = ["Electronics", "Wallets & Cards", "Keys", "Bags", "Clothing", "Accessories", "Documents", "Other"];
 const zones = [["utown", "UTown"], ["museum-ucc", "Museum/UCC"], ["cde", "CDE"], ["central", "Central"], ["fass", "FASS"], ["business", "Business"], ["computing", "Computing"], ["pgp", "PGP"], ["science", "Science"], ["medicine-kent-ridge", "Medicine/Kent Ridge MRT"]];
@@ -66,7 +66,7 @@ export default function FoundItemWorkflow({ onChanged }) {
       } else {
         const result = await createFoundItemReport(draft, files);
         setReward(result.report.reward);
-        setStatus("Found-Item Report submitted privately for review · 20 Gems collected.");
+        setStatus("Found-Item Report submitted privately for review · +20 Gems.");
         await refresh();
       }
       reset();
@@ -81,7 +81,6 @@ export default function FoundItemWorkflow({ onChanged }) {
   return <section className="participant-property-workflow found-participant-workflow" aria-labelledby="found-report-form-title">
     {error && <p className="form-error" role="alert">{error}</p>}
     {status && <p className="action-status" role="status">{status}</p>}
-    <GemRewardToast reward={reward} message="Thank you for reporting found property." />
     <form id="found-item-report-form" className="lost-item-form" onSubmit={submit}>
       <div><p className="eyebrow">YOU FOUND AN ITEM</p><h2 id="found-report-form-title">{editingId ? "Update found-item report" : "Tell us what you found"}</h2><p>Share where and when you found it. Identifying details stay private and help with later ownership checks.</p></div>
       <SelectControl label="Found category" value={draft.category} onChange={(value) => setDraft({ ...draft, category: value })} options={categories.map((value) => [value, value])} />
@@ -91,7 +90,8 @@ export default function FoundItemWorkflow({ onChanged }) {
       <label>Private identifying details <small>Marks, contents, serial details, or anything useful for checking ownership</small><textarea required minLength="3" rows="4" value={draft.privateIdentifyingDetails} onChange={(event) => setDraft({ ...draft, privateIdentifyingDetails: event.target.value })} /></label>
       {editingId && mine.find(({ id }) => id === editingId)?.photos.length > 0 && <fieldset className="retained-photos"><legend>Keep existing photos</legend>{mine.find(({ id }) => id === editingId).photos.map((photo) => <label key={photo.id}><input type="checkbox" checked={draft.retainedPhotoIds.includes(photo.id)} onChange={(event) => setDraft({ ...draft, retainedPhotoIds: event.target.checked ? [...draft.retainedPhotoIds, photo.id] : draft.retainedPhotoIds.filter((id) => id !== photo.id) })} /><img src={photo.url} alt="Private sanitized Found-Item preview" /></label>)}</fieldset>}
       <label>Photos <small>Optional, up to three. Metadata is stripped before encrypted storage.</small><input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setFiles([...event.target.files].slice(0, 3))} /></label>
-      <div className="lost-item-form-actions"><button className="primary-action" disabled={busy}>{busy ? "Submitting…" : editingId ? "Update and resubmit" : "Submit found-item report · collect 20 Gems"}</button>{!editingId && <button type="button" className="secondary-action" onClick={() => setDraft({ category: "Accessories", foundDate: today(), nusZoneId: "central", description: "Fictional blue water bottle found beside the Central Library entrance.", privateIdentifyingDetails: "Demo-only detail: small star sticker beneath the bottle.", retainedPhotoIds: [] })}>Load fictional demo details</button>}{editingId && <button type="button" className="secondary-action" onClick={reset}>Cancel edit</button>}</div>
+      <div className="lost-item-form-actions"><button className="primary-action" disabled={busy}>{busy ? "Submitting…" : editingId ? "Update and resubmit" : <>Submit found-item report <GemAmount amount={20} /></>}</button>{!editingId && <button type="button" className="secondary-action" onClick={() => setDraft({ category: "Accessories", foundDate: today(), nusZoneId: "central", description: "Fictional blue water bottle found beside the Central Library entrance.", privateIdentifyingDetails: "Demo-only detail: small star sticker beneath the bottle.", retainedPhotoIds: [] })}>Load fictional demo details</button>}{editingId && <button type="button" className="secondary-action" onClick={reset}>Cancel edit</button>}</div>
+      <GemRewardToast reward={reward} message="Thank you for reporting found property." />
     </form>
     <MyFoundItemReports reports={mine} onEdit={edit} onWithdraw={async (reportId) => {
       try {

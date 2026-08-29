@@ -5,7 +5,6 @@ import BuffetAlertSettings from "./BuffetAlertSettings.jsx";
 import { useBuffets } from "../hooks/useBuffets.js";
 import { getBuffetAlerts, recordBuffetAlertFeedback, recordBuffetGoing } from "../api/buffetApi.js";
 import { useAuth } from "../auth/AuthContext.jsx";
-import GemRewardToast from "./GemRewardToast.jsx";
 
 export default function BuffetFeed() {
   const [filters, setFilters] = useState({ query: "", zone: "all", freshness: "active" });
@@ -16,7 +15,7 @@ export default function BuffetFeed() {
   const [alertError, setAlertError] = useState("");
   const [feedbackPending, setFeedbackPending] = useState(false);
   const [goingPending, setGoingPending] = useState("");
-  const [reward, setReward] = useState(null);
+  const [rewardNotice, setRewardNotice] = useState(null);
   useEffect(() => {
     if (!participant) { setAlertData(null); return; }
     getBuffetAlerts().then(setAlertData).catch((caught) => caught.status !== 401 && setAlertError(caught.message));
@@ -32,13 +31,12 @@ export default function BuffetFeed() {
       {participant && alertData && <BuffetAlertSettings data={alertData} onData={setAlertData} />}
       {participant && !alertData && !alertError && <p className="private-alert-status" role="status">Loading private Buffet Alert settings...</p>}
       {alertError && <p className="form-error private-alert-status" role="alert">{alertError}</p>}
-      <GemRewardToast reward={reward} message="Thanks for helping reduce food waste." />
       <BuffetFilters filters={filters} zones={zones} onChange={(change) => setFilters((current) => ({ ...current, ...change }))} />
       {error ? <p className="status-message" role="alert">{error.message}</p>
         : loading ? <p className="status-message" role="status">Loading Buffet Posts…</p>
-        : posts.length ? <div className="buffet-grid" aria-live="polite">{posts.map((post) => <BuffetCard post={post} participant={participant} goingPending={goingPending === post.id} onGoing={async (postId) => {
+        : posts.length ? <div className="buffet-grid" aria-live="polite">{posts.map((post) => <BuffetCard post={post} participant={participant} reward={rewardNotice?.postId === post.id ? rewardNotice.reward : null} goingPending={goingPending === post.id} onGoing={async (postId) => {
           setGoingPending(postId); setAlertError("");
-          try { const result = await recordBuffetGoing(postId); setReward(result.reward); await Promise.all([refreshAuth(), refreshBuffets()]); }
+          try { const result = await recordBuffetGoing(postId); setRewardNotice({ postId, reward: result.reward }); await Promise.all([refreshAuth(), refreshBuffets()]); }
           catch (caught) { setAlertError(caught.message); } finally { setGoingPending(""); }
         }} alert={alertsByPost.get(post.id)} feedbackPending={feedbackPending} onFeedback={async (alertId, outcome) => {
           setFeedbackPending(true); setAlertError("");

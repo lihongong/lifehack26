@@ -82,6 +82,7 @@ A detected sale awards 30 Gems each to its buyer and seller, with at most three 
 The non-production Telegram fixture adapter provides one seller-owned keyboard listing, one seeded Demo Buyer contact, and an owner-only “sold” reply control so the sale flow is demonstrable without live Telegram or WhatsApp access.
 Processed sales are exact-once and disappear from the active public Marketplace feed. Production exposes no simulated sold endpoint.
 Daily uNivUS login and physical Found-Item intake no longer award Gems; immutable historical entries remain readable.
+Reward actions use a compact `+N` Gem-icon badge instead of “collect N Gems” copy. Successful, duplicate, and daily-limit outcomes reuse the same accessible Gem notification beside the action that produced them; reduced-motion preferences disable the icon animation.
 
 ## Private Buffet Alerts and Helpful Alert review
 

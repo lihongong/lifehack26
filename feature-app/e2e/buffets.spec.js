@@ -50,8 +50,10 @@ test("a Participant collects 2 Gems for up to three Buffet Posts daily", async (
   await page.goto("/buffets");
   for (const title of ["Pastries and fruit cups", "Vegetarian bento boxes", "Sandwich platters"]) {
     const card = page.getByRole("article").filter({ hasText: title });
+    await expect(card.getByRole("button", { name: /I’m going/ }).locator(".gem-amount")).toContainText("+2");
     await card.getByRole("button", { name: /I’m going/ }).click();
-    await expect(card.getByRole("button", { name: /Gems collected/ })).toBeDisabled();
+    await expect(card.getByRole("button", { name: "✓ Going" })).toBeDisabled();
+    await expect(card.getByRole("status").filter({ hasText: "+2 Gems" })).toBeVisible();
   }
   await page.getByRole("article").filter({ hasText: "Fresh fruit and bottled water" }).getByRole("button", { name: /I’m going/ }).click();
   await expect(page.getByRole("status").filter({ hasText: "Daily Gem limit reached" })).toBeVisible();

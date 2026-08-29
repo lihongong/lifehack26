@@ -3,7 +3,7 @@ import { useState } from "react";
 import { SiTelegram, SiWhatsapp } from "react-icons/si";
 import CommentThread from "./CommentThread.jsx";
 import ReportControl from "./ReportControl.jsx";
-import GemRewardToast from "./GemRewardToast.jsx";
+import GemRewardToast, { GemAmount } from "./GemRewardToast.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { collectMarketplaceContactReward, simulateMarketplaceSoldReply } from "../api/listingsApi.js";
 
@@ -46,13 +46,14 @@ export default function ListingCard({ listing }) {
         <div className="listing-footer">
           {listing.contactUrl ? <>
             <span className="contact-caption">Consented contact</span>
-            <a className={`contact-button ${usesWhatsApp ? "whatsapp" : "telegram"}`} href={listing.contactUrl} target="_blank" rel="noopener noreferrer" aria-label={`Message source author on ${contactLabel} about ${listing.title}`} title={`${contactLabel} contact`} onClick={() => {
+            <a className={`contact-button ${usesWhatsApp ? "whatsapp" : "telegram"}`} href={listing.contactUrl} target="_blank" rel="noopener noreferrer" aria-label={`Message source author on ${contactLabel} about ${listing.title}${participant ? " and earn 1 Gem" : ""}`} title={`${contactLabel} contact`} onClick={() => {
               if (!participant) return;
               setError("");
               collectMarketplaceContactReward(listing.id).then(async (result) => { setReward(result.reward); await refresh(); }).catch((caught) => setError(caught.message));
             }}>
               {usesWhatsApp ? <SiWhatsapp aria-hidden="true" size={19} /> : usesTelegram ? <SiTelegram aria-hidden="true" size={18} /> : <ExternalLink aria-hidden="true" size={18} />}
               <span>{contactLabel}</span>
+              {participant && <GemAmount amount={1} />}
             </a>
           </> : <span className="contact-caption">{listing.attributionState === "withheld" ? "Author attribution withheld" : "Seller contact withheld"}</span>}
         </div>
@@ -65,7 +66,7 @@ export default function ListingCard({ listing }) {
             setSold(true);
             await refresh();
           } catch (caught) { setError(caught.message); } finally { setBusy(false); }
-        }}>{sold ? "✓ Sold reply processed" : busy ? "Processing…" : "Demo: simulate Telegram “sold” reply"}</button>}
+        }}>{sold ? "✓ Sold reply processed" : busy ? "Processing…" : <>Demo: simulate Telegram “sold” reply <GemAmount amount={30} /></>}</button>}
         <GemRewardToast reward={reward} message={sold ? "Buyer and seller rewards processed." : "Marketplace participation reward."} />
         {error && <p className="form-error" role="alert">{error}</p>}
         <ReportControl targetType="marketplace_listing" targetId={listing.id} label="Report Marketplace Listing" />
