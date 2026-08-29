@@ -21,5 +21,5 @@ if (environment !== "production") seedCustodyLocation(database);
 const app = createApp({ database, clock, environment, sourceIdentitySecret, lostItemPrivateDataKey });
 const port = Number(process.env.PORT || 3000);
 app.listen(port, "127.0.0.1", () =>
-  console.log(`NUS Exchange backend listening on http://127.0.0.1:${port}`),
+  console.log(`ShareNUS listening on http://127.0.0.1:${port}`),
 );

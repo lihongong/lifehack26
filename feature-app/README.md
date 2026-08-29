@@ -1,11 +1,13 @@
-# NUS Community Exchange
+# ShareNUS
 
-React/Vite frontend and Node/Express/SQLite backend for the NUS Community Exchange tracer bullets.
+React/Vite frontend and Node/Express/SQLite backend for the ShareNUS tracer bullets.
 
 ```bash
 npm run install:all
 npm run dev
 ```
+
+The development command continuously rebuilds the frontend and serves the complete app and API from `http://127.0.0.1:3000/`.
 
 For the complete authenticated handoff, build and start the Node server, then open the served mock uNivUS page:
 

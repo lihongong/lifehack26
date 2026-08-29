@@ -58,11 +58,13 @@ test("Participant profile is discoverable and responsive", async ({ page }) => {
   await app.getByLabel("Private NUS Zone").selectOption("medicine-kent-ridge");
   await app.getByRole("button", { name: "Complete profile" }).click();
   await app.goto("/");
+  await expect(app).toHaveTitle("ShareNUS");
+  await expect(app.getByText("SHARENUS", { exact: true })).toBeVisible();
 
   for (const viewport of [{ width: 320, height: 800 }, { width: 430, height: 900 }]) {
     await app.setViewportSize(viewport);
     const header = app.locator(".app-header");
-    const brand = header.getByRole("link", { name: "NUS Exchange home" });
+    const brand = header.getByRole("link", { name: "ShareNUS home" });
     const operator = header.getByRole("link", { name: "Operator" });
     const profile = header.getByRole("link", { name: "Profile", exact: true });
     await expect(brand).toBeVisible();
