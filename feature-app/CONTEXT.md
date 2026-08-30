@@ -54,6 +54,10 @@ Seeded fictional Buffet Posts remain available throughout a demo and display no 
 The public feed supports text search, exact-zone filtering, `Location unclear`, and Active, 30-minute, or 60-minute freshness filters.
 Ambiguous locations remain visible under All zones and Location unclear but never match a canonical NUS Zone.
 The frontend refreshes the feed every 30 seconds so newly expired posts disappear without authentication.
+Moderators can publish time-limited manual Buffet Posts that are stored separately from Source Feed records and labeled as ShareNUS additions in the public feed.
+Manual Buffet Post creation and soft deletion require a reason and write an immutable audit event in the same transaction, while Source Feed provenance and reconciliation remain unchanged.
+Every publicly visible Buffet Post accepts public Comments and participates in the same Buffet Alert, food-gone signal, and Moderator restore-or-expire lifecycle regardless of whether its origin is a Source Feed or a Moderator publication.
+Deleting a manual Buffet Post terminally expires any open food-gone review, and no Helpful Alert feedback is accepted after a post stops being public.
 
 The static graph version is `nus-zones-v1` and contains UTown, Museum/UCC, CDE, Central, FASS, Business, Computing, PGP, Science, and Medicine/Kent Ridge MRT.
 Approved aliases map as follows: ERC to UTown; SRC and UCC to Museum/UCC; EA to CDE; YIH and CLB to Central; AS5 to FASS; BIZ2 to Business; COM2 and COM3 to Computing; PGPR to PGP; LT27 and S17 to Science; and YLL, NUH, and Kent Ridge MRT to Medicine/Kent Ridge MRT.
@@ -91,10 +95,12 @@ The private profile and Buffet Alert settings use the canonical `nus-zones-v1` i
 Enabling Buffet Alerts or changing the zone of an enabled subscription requires current alert-policy acceptance.
 A Participant can always opt out without renewed policy acceptance, and clearing the selected NUS Zone atomically turns Buffet Alerts off.
 
-Buffet Posts are persisted under a Source Feed namespace and stable source post identifier before delivery is reconciled.
+A Buffet Post has a stable canonical reference before delivery is reconciled, while its Source Feed or manual origin remains explicit.
+Comments, lifecycle state, and Gem rewards use that canonical reference so feed-local identifiers cannot collide.
 A fresh Buffet Post creates at most one private Buffet Alert and one linked in-app notification for each eligible Participant whose selected zone is the post's zone or one adjacent graph hop away.
 Location-unclear, time-expired, possibly-gone, and confirmed-expired Buffet Posts do not create alerts.
-Source edits and repeated reconciliation preserve the original delivery identity and cannot duplicate either the Buffet Alert or its notification.
+Source edits, Moderator publication, and repeated reconciliation preserve the original delivery identity and cannot duplicate either the Buffet Alert or its notification.
+Moderator publication, immutable audit, Buffet Alert creation, and linked notification creation succeed or fail as one operation.
 
 A Participant can record one terminal Helpful Alert outcome for their own Buffet Alert by marking it helpful or reporting food gone.
 A food-gone outcome marks the Buffet Post possibly gone, suppresses later delivery, and joins the current open Moderator review cycle.

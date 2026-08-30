@@ -18,7 +18,9 @@ const postPath = (postType, postId) => postType === "lost_item_post"
   : postType === "found_item_report"
     ? `/api/found-item-reports/${encodeURIComponent(postId)}`
     : postType === "found_item"
-      ? `/api/found-items/${encodeURIComponent(postId)}`
+    ? `/api/found-items/${encodeURIComponent(postId)}`
+    : postType === "buffet_post"
+      ? `/api/buffets/${encodeURIComponent(postId)}`
   : `/api/listings/${encodeURIComponent(postId)}`;
 export const getComments = (postId, postType = "marketplace_listing") => request(`${postPath(postType, postId)}/comments`);
 export const createComment = (postId, input, postType = "marketplace_listing") => request(`${postPath(postType, postId)}/comments`, {

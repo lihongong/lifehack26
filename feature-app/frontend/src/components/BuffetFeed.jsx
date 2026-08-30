@@ -37,9 +37,9 @@ export default function BuffetFeed() {
       <BuffetFilters filters={filters} zones={zones} onChange={(change) => setFilters((current) => ({ ...current, ...change }))} />
       {error ? <p className="feed-state is-error" role="alert">{error.message}</p>
         : loading ? <p className="feed-state" role="status">Loading Buffet Posts…</p>
-        : posts.length ? <div className="buffet-grid" aria-live="polite">{posts.map((post) => <BuffetCard post={post} participant={participant} reward={rewardNotice?.postId === post.id ? rewardNotice.reward : null} goingPending={goingPending === post.id} onGoing={async (postId) => {
-          setGoingPending(postId); setAlertError("");
-          try { const result = await recordBuffetGoing(postId); setRewardNotice({ postId, reward: result.reward }); await Promise.all([refreshAuth(), refreshBuffets()]); }
+        : posts.length ? <div className="buffet-grid" aria-live="polite">{posts.map((post) => <BuffetCard post={post} participant={participant} reward={rewardNotice?.referenceId === post.referenceId ? rewardNotice.reward : null} goingPending={goingPending === post.referenceId} onGoing={async (referenceId) => {
+          setGoingPending(referenceId); setAlertError("");
+          try { const result = await recordBuffetGoing(referenceId); setRewardNotice({ referenceId, reward: result.reward }); await Promise.all([refreshAuth(), refreshBuffets()]); }
           catch (caught) { setAlertError(caught.message); } finally { setGoingPending(""); }
         }} alert={alertsByPost.get(post.id)} feedbackPending={feedbackPending} onFeedback={async (alertId, outcome) => {
           setFeedbackPending(true); setAlertError("");

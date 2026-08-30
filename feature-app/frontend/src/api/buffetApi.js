@@ -19,4 +19,4 @@ export const synchronizeBuffetAlerts = () => alertRequest("/api/buffet-alerts/sy
 export const recordBuffetAlertFeedback = (alertId, outcome) => alertRequest(`/api/buffet-alerts/${encodeURIComponent(alertId)}/feedback`, {
   method: "POST", body: JSON.stringify({ outcome }),
 });
-export const recordBuffetGoing = (postId) => alertRequest(`/api/buffets/${encodeURIComponent(postId)}/going`, { method: "POST" });
+export const recordBuffetGoing = (referenceId) => alertRequest(`/api/buffets/${encodeURIComponent(referenceId)}/going`, { method: "POST" });

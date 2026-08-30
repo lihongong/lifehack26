@@ -38,6 +38,12 @@ export function commentRoutes({ database, clock }) {
       response.status(201).json({ comment: createPostComment(database, request.participant, postType, request.params.postId, request.body, clock.now()) });
     });
   }
+  router.get("/buffets/:postId/comments", (request, response) => {
+    response.json({ comments: listPostComments(database, "buffet_post", request.params.postId, clock.now()) });
+  });
+  router.post("/buffets/:postId/comments", requireParticipant, requireCommentPolicy, (request, response) => {
+    response.status(201).json({ comment: createPostComment(database, request.participant, "buffet_post", request.params.postId, request.body, clock.now()) });
+  });
   router.get("/lost-item-posts/:postId/comments", (request, response) => {
     response.json({ comments: listPostComments(database, "lost_item_post", request.params.postId, clock.now()) });
   });

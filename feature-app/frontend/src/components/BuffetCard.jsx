@@ -1,5 +1,6 @@
 import { Clock3, MapPin } from "lucide-react";
 import GemRewardToast, { GemAmount } from "./GemRewardToast.jsx";
+import CommentThread from "./CommentThread.jsx";
 
 const time = (value) => new Intl.DateTimeFormat("en-SG", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Singapore" }).format(new Date(value));
 
@@ -8,7 +9,7 @@ export default function BuffetCard({ post, alert, onFeedback, feedbackPending, p
   return (
     <article className={`exchange-card buffet-card${post.zone ? "" : " location-unclear"}`}>
       <div className="buffet-card-heading">
-        <span className="fictional-note">Fictional Buffet Post</span>
+        <span className="fictional-note">{post.origin === "manual" ? "Moderator Buffet Post" : "Fictional Buffet Post"}</span>
         <span>{minutesAgo}m ago</span>
       </div>
       <h3>{post.title}</h3>
@@ -20,10 +21,10 @@ export default function BuffetCard({ post, alert, onFeedback, feedbackPending, p
       </div>
       {post.persistentDemo ? <p className="demo-availability">Available throughout this demo</p> : <div className="buffet-expiry">
         <Clock3 aria-hidden="true" size={16} />
-        <div><strong>{post.expiryBasis === "stated" ? "Collect by" : "Estimated expiry"} {time(post.expiresAt)}</strong><span>{post.expiryBasis === "fallback" ? "Two-hour fallback because no deadline was stated" : "Deadline stated in the source post"}</span></div>
+        <div><strong>{post.expiryBasis === "stated" ? "Collect by" : "Estimated expiry"} {time(post.expiresAt)}</strong><span>{post.expiryBasis === "fallback" ? "Two-hour fallback because no deadline was stated" : post.origin === "manual" ? "Deadline set by a ShareNUS Moderator" : "Deadline stated in the source post"}</span></div>
       </div>}
-      <small>Source: {post.source} · <time dateTime={post.sourceTime}>{time(post.sourceTime)}</time></small>
-      {participant ? <button className="primary-action buffet-going-action" type="button" disabled={goingPending || post.going} onClick={() => onGoing(post.id)}>{post.going ? "✓ Going" : goingPending ? "Collecting…" : <>I’m going <GemAmount amount={2} /></>}</button>
+      <small>{post.origin === "manual" ? "Added by a ShareNUS Moderator" : `Source: ${post.source}`} · <time dateTime={post.sourceTime}>{time(post.sourceTime)}</time></small>
+      {participant ? <button className="primary-action buffet-going-action" type="button" disabled={goingPending || post.going} onClick={() => onGoing(post.referenceId)}>{post.going ? "✓ Going" : goingPending ? "Collecting…" : <>I’m going <GemAmount amount={2} /></>}</button>
         : <a className="primary-action buffet-going-action" href="/univus/">Sign in <GemAmount amount={2} /></a>}
       <GemRewardToast reward={reward} message="Thanks for helping reduce food waste." />
       {alert && !alert.outcome && <div className="buffet-alert-actions" aria-label={`Helpful Alert actions for ${post.title}`}>
@@ -34,6 +35,7 @@ export default function BuffetCard({ post, alert, onFeedback, feedbackPending, p
         </div>
       </div>}
       {alert?.outcome && <p className="alert-outcome">Helpful Alert recorded: {alert.outcome === "food_gone" ? "food gone" : "helpful"}.</p>}
+      <CommentThread post={{ ...post, id: post.referenceId }} postType="buffet_post" returnTo="/buffets" />
     </article>
   );
 }
